@@ -5,7 +5,7 @@ class EvolutionAPI {
   private apiKey: string;
 
   constructor() {
-    this.baseUrl = 'http://localhost:8080';
+    this.baseUrl = import.meta.env.VITE_EVOLUTION_API_URL || 'http://localhost:8080';
     this.apiKey = import.meta.env.VITE_EVOLUTION_API_KEY || '';
   }
 
