@@ -1,5 +1,6 @@
 import { LucideIcon, TrendingUp, TrendingDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
 
 interface StatCardProps {
   title: string;
@@ -10,6 +11,7 @@ interface StatCardProps {
   };
   icon: LucideIcon;
   variant?: "default" | "success" | "warning" | "destructive";
+  loading?: boolean;
 }
 
 const variantStyles = {
@@ -26,12 +28,13 @@ const iconVariantStyles = {
   destructive: "bg-destructive text-destructive-foreground",
 };
 
-export function StatCard({ title, value, change, icon: Icon, variant = "default" }: StatCardProps) {
+export function StatCard({ title, value, change, icon: Icon, variant = "default", loading = false }: StatCardProps) {
   return (
     <div
       className={cn(
         "relative overflow-hidden rounded-xl border p-6 transition-all duration-300 hover-lift hover:shadow-xl animate-fade-in group",
-        variantStyles[variant]
+        variantStyles[variant],
+        loading && "opacity-60"
       )}
     >
       {/* Background Glow */}
@@ -48,10 +51,14 @@ export function StatCard({ title, value, change, icon: Icon, variant = "default"
               iconVariantStyles[variant]
             )}
           >
-            <Icon className="h-7 w-7 animate-pulse-slow" />
+            {loading ? (
+              <div className="h-7 w-7 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            ) : (
+              <Icon className="h-7 w-7 animate-pulse-slow" />
+            )}
           </div>
 
-          {change && (
+          {change && !loading && (
             <div
               className={cn(
                 "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium backdrop-blur-sm border transition-all duration-300 hover:scale-105",
@@ -75,7 +82,11 @@ export function StatCard({ title, value, change, icon: Icon, variant = "default"
             {title}
           </p>
           <p className="mt-2 text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
-            {value}
+            {loading ? (
+              <div className="h-8 w-20 bg-muted animate-pulse rounded" />
+            ) : (
+              value
+            )}
           </p>
         </div>
       </div>

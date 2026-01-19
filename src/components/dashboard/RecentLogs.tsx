@@ -1,44 +1,9 @@
 import { Clock, Send, AlertCircle, CheckCircle2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-
-const logs = [
-  {
-    id: "log_001",
-    timestamp: "2026-01-15T18:45:00Z",
-    action: "bulk_dispatch_started",
-    description: "Disparo em massa iniciado para Lista Marketing Q1",
-    status: "processing",
-  },
-  {
-    id: "log_002",
-    timestamp: "2026-01-15T18:30:00Z",
-    action: "instance_connected",
-    description: "Instância Vendas01 reconectada com sucesso",
-    status: "success",
-  },
-  {
-    id: "log_003",
-    timestamp: "2026-01-15T18:15:00Z",
-    action: "campaign_completed",
-    description: "Campanha Black Friday finalizada - 2.450 mensagens",
-    status: "success",
-  },
-  {
-    id: "log_004",
-    timestamp: "2026-01-15T18:00:00Z",
-    action: "dispatch_error",
-    description: "45 números inválidos detectados na lista Promoções",
-    status: "error",
-  },
-  {
-    id: "log_005",
-    timestamp: "2026-01-15T17:45:00Z",
-    action: "instance_created",
-    description: "Nova instância Suporte02 criada",
-    status: "success",
-  },
-];
+import { useActivityLogs } from "@/hooks/useEvolution";
+import { ActivityLog } from "@/types/evolution";
+import { AlertTriangle, RefreshCw } from "lucide-react";
 
 const statusConfig = {
   processing: {
@@ -62,6 +27,71 @@ const statusConfig = {
 };
 
 export function RecentLogs() {
+  const { data: logs, isLoading, error } = useActivityLogs(10);
+
+  const mapLogTypeToStatus = (type: string) => {
+    if (type === 'error') return 'error';
+    if (type === 'warning') return 'processing';
+    return 'success';
+  };
+
+  if (isLoading) {
+    return (
+      <div className="glass-strong rounded-2xl border border-border/50 p-6 animate-fade-in hover-lift group">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h3 className="text-xl font-bold bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
+              Atividade Recente
+            </h3>
+            <p className="text-sm text-muted-foreground mt-1">Últimas ações do sistema</p>
+          </div>
+        </div>
+        <div className="flex items-center justify-center py-8">
+          <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !logs) {
+    return (
+      <div className="glass-strong rounded-2xl border border-border/50 p-6 animate-fade-in hover-lift group">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h3 className="text-xl font-bold bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
+              Atividade Recente
+            </h3>
+            <p className="text-sm text-muted-foreground mt-1">Últimas ações do sistema</p>
+          </div>
+        </div>
+        <div className="flex items-center justify-center py-8">
+          <div className="text-center">
+            <AlertTriangle className="h-8 w-8 text-destructive mx-auto mb-2" />
+            <p className="text-sm text-muted-foreground">Falha ao carregar logs</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (logs.length === 0) {
+    return (
+      <div className="glass-strong rounded-2xl border border-border/50 p-6 animate-fade-in hover-lift group">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h3 className="text-xl font-bold bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
+              Atividade Recente
+            </h3>
+            <p className="text-sm text-muted-foreground mt-1">Últimas ações do sistema</p>
+          </div>
+        </div>
+        <div className="flex items-center justify-center py-8">
+          <p className="text-sm text-muted-foreground">Nenhuma atividade recente</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="glass-strong rounded-2xl border border-border/50 p-6 animate-fade-in hover-lift group">
       <div className="flex items-center justify-between mb-6">
@@ -76,9 +106,10 @@ export function RecentLogs() {
         </Badge>
       </div>
 
-<div className="space-y-3">
+      <div className="space-y-3">
         {logs.map((log, index) => {
-          const config = statusConfig[log.status as keyof typeof statusConfig];
+          const status = mapLogTypeToStatus(log.type);
+          const config = statusConfig[status as keyof typeof statusConfig];
           const StatusIcon = config.icon;
           const time = new Date(log.timestamp).toLocaleTimeString("pt-BR", {
             hour: "2-digit",
@@ -90,7 +121,7 @@ export function RecentLogs() {
               key={log.id}
               className={cn(
                 "flex items-start gap-4 p-4 rounded-xl border border-border/30 glass-strong hover:border-primary/30 transition-all duration-300 hover:shadow-md animate-slide-up group",
-                log.status === "processing" && "animate-pulse-slow"
+                status === "processing" && "animate-pulse-slow"
               )}
               style={{ animationDelay: `${index * 100}ms` }}
             >
@@ -115,9 +146,9 @@ export function RecentLogs() {
                 "shrink-0 px-3 py-1 rounded-full border hover-scale transition-transform",
                 config.badge
               )}>
-                {log.status === "processing" && "Em andamento"}
-                {log.status === "success" && "Concluído"}
-                {log.status === "error" && "Erro"}
+                {status === "processing" && "Em andamento"}
+                {status === "success" && "Concluído"}
+                {status === "error" && "Erro"}
               </Badge>
             </div>
           );
