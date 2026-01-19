@@ -15,10 +15,10 @@ import { useHealthCheck } from "@/hooks/useN8n";
 import { useInstances } from "@/hooks/useEvolution";
 
 const Settings = () => {
-  const [n8nUrl, setN8nUrl] = useState(import.meta.env.VITE_N8N_API_URL || '');
-  const [n8nToken, setN8nToken] = useState(import.meta.env.VITE_N8N_API_TOKEN || '');
-  const [evolutionUrl, setEvolutionUrl] = useState(import.meta.env.VITE_EVOLUTION_API_URL || '');
-  const [evolutionKey, setEvolutionKey] = useState(import.meta.env.VITE_EVOLUTION_API_KEY || '');
+  const [n8nUrl, setN8nUrl] = useState('http://localhost:5678');
+  const [n8nToken, setN8nToken] = useState('');
+  const [evolutionUrl, setEvolutionUrl] = useState('http://localhost:8080');
+  const [evolutionKey, setEvolutionKey] = useState('');
 
   const { data: n8nHealth, isLoading: n8nLoading, error: n8nError } = useHealthCheck();
   const { data: instances, isLoading: instancesLoading } = useInstances();

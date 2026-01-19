@@ -19,7 +19,7 @@ class N8nAPI {
   private apiToken: string;
 
   constructor() {
-    this.baseUrl = import.meta.env.VITE_N8N_API_URL || 'http://localhost:5678';
+    this.baseUrl = 'http://localhost:5678';
     this.apiToken = import.meta.env.VITE_N8N_API_TOKEN || '';
   }
 

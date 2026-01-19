@@ -58,35 +58,34 @@ export function StatCard({ title, value, change, icon: Icon, variant = "default"
             )}
           </div>
 
-          {change && !loading && (
-            <div
-              className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium backdrop-blur-sm border transition-all duration-300 hover:scale-105",
-                change.trend === "up" 
-                  ? "text-success bg-success/10 border-success/20" 
-                  : "text-destructive bg-destructive/10 border-destructive/20"
+              {change && (
+                <div
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium backdrop-blur-sm border transition-all duration-300 hover:scale-105",
+                    change.trend === "up" 
+                      ? "text-success bg-success/10 border-success/20" 
+                      : "text-destructive bg-destructive/10 border-destructive/20"
+                  )}
+                >
+                  {change.trend === "up" ? (
+                    <TrendingUp className="h-4 w-4" />
+                  ) : (
+                    <TrendingDown className="h-4 w-4" />
+                  )}
+                  {change.value}
+                </div>
               )}
-            >
-              {change.trend === "up" ? (
-                <TrendingUp className="h-4 w-4" />
-              ) : (
-                <TrendingDown className="h-4 w-4" />
-              )}
-              {change.value}
-            </div>
-          )}
         </div>
 
         <div className="mt-5">
           <p className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">
             {title}
           </p>
+          <p className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">
+            {title}
+          </p>
           <p className="mt-2 text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
-            {loading ? (
-              <div className="h-8 w-20 bg-muted animate-pulse rounded" />
-            ) : (
-              value
-            )}
+            {value}
           </p>
         </div>
       </div>

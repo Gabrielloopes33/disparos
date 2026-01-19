@@ -50,7 +50,7 @@ const statusConfig = {
 };
 
 export function InstanceCard({ instance, onShowQR, onRestart, onDelete }: InstanceCardProps) {
-  const config = statusConfig[instance.status];
+  const config = statusConfig[instance.status as keyof typeof statusConfig];
   const StatusIcon = config.icon;
 
   return (

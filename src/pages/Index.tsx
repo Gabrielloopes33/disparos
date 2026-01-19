@@ -16,6 +16,15 @@ const Dashboard = () => {
   const { data: instances, isLoading: instancesLoading } = useInstances();
   const { data: activityLogs, isLoading: logsLoading } = useActivityLogs();
 
+  // Check if APIs are available
+  const hasApiAccess = !!import.meta.env.VITE_N8N_API_TOKEN || !!import.meta.env.VITE_EVOLUTION_API_KEY;
+
+  // If APIs are not configured, show demo page
+  if (!hasApiAccess) {
+    window.location.href = '/demo';
+    return null;
+  }
+
   // Calculate real-time stats
   const connectedInstances = instances?.filter(i => i.status === 'connected').length || 0;
   const totalInstances = instances?.length || 0;

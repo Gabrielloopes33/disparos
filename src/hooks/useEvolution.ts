@@ -7,13 +7,20 @@ export function useInstances(options?: UseQueryOptions<EvolutionInstance[], Erro
   return useQuery({
     queryKey: ['evolution', 'instances'],
     queryFn: async () => {
-      const response = await evolutionAPI.getInstances();
-      if (response.status === 'error') {
-        throw new Error(response.error || 'Failed to fetch instances');
+      try {
+        const response = await evolutionAPI.getInstances();
+        if (response.status === 'error') {
+          throw new Error(response.error || 'Failed to fetch instances');
+        }
+        return response.response || [];
+      } catch (error) {
+        // Fallback to empty array if API is not available
+        console.warn('Evolution API not available, returning empty instances');
+        return [];
       }
-      return response.response || [];
     },
     refetchInterval: 30000, // Refresh every 30 seconds
+    retry: false, // Disable retries to avoid infinite loop
     ...options,
   });
 }
@@ -178,20 +185,34 @@ export function useEvolutionStats(options?: UseQueryOptions<EvolutionStats, Erro
   return useQuery({
     queryKey: ['evolution', 'stats'],
     queryFn: async () => {
-      const response = await evolutionAPI.getStats();
-      if (response.status === 'error') {
-        throw new Error(response.error || 'Failed to fetch stats');
+      try {
+        const response = await evolutionAPI.getStats();
+        if (response.status === 'error') {
+          throw new Error(response.error || 'Failed to fetch stats');
+        }
+        return response.response || {
+          totalMessages: 0,
+          totalChats: 0,
+          connectedInstances: 0,
+          totalInstances: 0,
+          messagesToday: 0,
+          errorsCount: 0,
+        };
+      } catch (error) {
+        // Fallback to default stats if API is not available
+        console.warn('Evolution API not available, returning default stats');
+        return {
+          totalMessages: 0,
+          totalChats: 0,
+          connectedInstances: 0,
+          totalInstances: 0,
+          messagesToday: 0,
+          errorsCount: 0,
+        };
       }
-      return response.response || {
-        totalMessages: 0,
-        totalChats: 0,
-        connectedInstances: 0,
-        totalInstances: 0,
-        messagesToday: 0,
-        errorsCount: 0,
-      };
     },
     refetchInterval: 15000, // Refresh every 15 seconds
+    retry: false, // Disable retries to avoid infinite loop
     ...options,
   });
 }
@@ -284,13 +305,20 @@ export function useActivityLogs(limit: number = 50) {
   return useQuery({
     queryKey: ['evolution', 'logs', 'activity', limit],
     queryFn: async () => {
-      const response = await evolutionAPI.getActivityLogs(limit);
-      if (response.status === 'error') {
-        throw new Error(response.error || 'Failed to fetch activity logs');
+      try {
+        const response = await evolutionAPI.getActivityLogs(limit);
+        if (response.status === 'error') {
+          throw new Error(response.error || 'Failed to fetch activity logs');
+        }
+        return response.response || [];
+      } catch (error) {
+        // Fallback to empty array if API is not available
+        console.warn('Evolution API not available, returning empty logs');
+        return [];
       }
-      return response.response || [];
     },
     refetchInterval: 10000, // Refresh every 10 seconds
+    retry: false, // Disable retries to avoid infinite loop
   });
 }
 

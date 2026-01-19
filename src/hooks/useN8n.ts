@@ -326,15 +326,19 @@ export function useHealthCheck() {
   return useQuery({
     queryKey: ['n8n', 'health'],
     queryFn: async () => {
-      const response = await n8nAPI.healthCheck();
-      if (response.error) {
-        throw new Error(response.error.message || 'Health check failed');
+      try {
+        const response = await n8nAPI.healthCheck();
+        if (response.error) {
+          throw new Error(response.error.message || 'Health check failed');
+        }
+        return response.data;
+      } catch (error) {
+        // Fallback to avoid crashing
+        return { status: 'unknown' };
       }
-      return response.data;
     },
     refetchInterval: 30000, // Check health every 30 seconds
-    retry: 3,
-    retryDelay: 1000,
+    retry: false, // Disable retries to avoid infinite loop
   });
 }
 
