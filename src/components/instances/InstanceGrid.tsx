@@ -47,21 +47,28 @@ const mockInstances = [
 
 export function InstanceGrid() {
   return (
-    <div className="animate-fade-in">
-      <div className="flex items-center justify-between mb-6">
+    <div className="animate-fade-in space-y-6">
+      <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Instâncias</h2>
-          <p className="text-muted-foreground">Gerencie suas conexões WhatsApp</p>
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
+            Instâncias
+          </h2>
+          <p className="text-muted-foreground mt-2">Gerencie suas conexões WhatsApp</p>
         </div>
-        <Button className="gap-2">
+        <Button className="gradient-primary gap-2 hover-scale shadow-lg text-sm sm:text-base px-4 sm:px-6 h-10 sm:h-11">
           <Plus className="h-4 w-4" />
-          Nova Instância
+          <span className="hidden sm:inline">Nova Instância</span>
+          <span className="sm:hidden">Nova</span>
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {mockInstances.map((instance, index) => (
-          <div key={instance.id} style={{ animationDelay: `${index * 100}ms` }}>
+          <div 
+            key={instance.id} 
+            style={{ animationDelay: `${index * 100}ms` }}
+            className="animate-slide-up"
+          >
             <InstanceCard
               instance={instance}
               onShowQR={() => console.log("Show QR", instance.id)}

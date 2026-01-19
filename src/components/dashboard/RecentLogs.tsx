@@ -63,18 +63,20 @@ const statusConfig = {
 
 export function RecentLogs() {
   return (
-    <div className="rounded-xl border border-border bg-card p-6 animate-fade-in">
+    <div className="glass-strong rounded-2xl border border-border/50 p-6 animate-fade-in hover-lift group">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h3 className="text-lg font-semibold">Atividade Recente</h3>
-          <p className="text-sm text-muted-foreground">Últimas ações do sistema</p>
+          <h3 className="text-xl font-bold bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
+            Atividade Recente
+          </h3>
+          <p className="text-sm text-muted-foreground mt-1">Últimas ações do sistema</p>
         </div>
-        <Badge variant="outline" className="text-muted-foreground">
+        <Badge variant="outline" className="glass-strong border-border/50 px-3 py-1.5 hover-scale">
           Últimas 24h
         </Badge>
       </div>
 
-      <div className="space-y-4">
+<div className="space-y-3">
         {logs.map((log, index) => {
           const config = statusConfig[log.status as keyof typeof statusConfig];
           const StatusIcon = config.icon;
@@ -86,19 +88,33 @@ export function RecentLogs() {
           return (
             <div
               key={log.id}
-              className="flex items-start gap-4 p-3 rounded-lg hover:bg-muted/50 transition-colors"
+              className={cn(
+                "flex items-start gap-4 p-4 rounded-xl border border-border/30 glass-strong hover:border-primary/30 transition-all duration-300 hover:shadow-md animate-slide-up group",
+                log.status === "processing" && "animate-pulse-slow"
+              )}
               style={{ animationDelay: `${index * 100}ms` }}
             >
-              <div className={cn("flex h-10 w-10 items-center justify-center rounded-lg", config.bg)}>
-                <StatusIcon className={cn("h-5 w-5", config.color)} />
+              <div className={cn(
+                "flex h-11 w-11 items-center justify-center rounded-xl shadow-md group-hover:scale-110 transition-transform duration-300",
+                config.bg
+              )}>
+                <StatusIcon className={cn("h-6 w-6", config.color)} />
               </div>
 
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{log.description}</p>
-                <p className="text-xs text-muted-foreground mt-1">{time}</p>
+                <p className="text-sm font-medium truncate group-hover:text-primary transition-colors">
+                  {log.description}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  {time}
+                </p>
               </div>
 
-              <Badge variant="outline" className={cn("shrink-0", config.badge)}>
+              <Badge variant="outline" className={cn(
+                "shrink-0 px-3 py-1 rounded-full border hover-scale transition-transform",
+                config.badge
+              )}>
                 {log.status === "processing" && "Em andamento"}
                 {log.status === "success" && "Concluído"}
                 {log.status === "error" && "Erro"}

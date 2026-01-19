@@ -16,7 +16,7 @@ const Dashboard = () => {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           <StatCard
             title="Instâncias Ativas"
             value="19/22"
@@ -48,11 +48,11 @@ const Dashboard = () => {
         </div>
 
         {/* Charts and Logs */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          <div className="xl:col-span-2">
             <MessagesChart />
           </div>
-          <div className="lg:col-span-1">
+          <div className="xl:col-span-1">
             <RecentLogs />
           </div>
         </div>

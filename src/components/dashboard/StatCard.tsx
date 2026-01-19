@@ -13,46 +13,51 @@ interface StatCardProps {
 }
 
 const variantStyles = {
-  default: "bg-card border-border",
-  success: "bg-success/5 border-success/20",
-  warning: "bg-warning/5 border-warning/20",
-  destructive: "bg-destructive/5 border-destructive/20",
+  default: "glass-strong border-border/50 hover:border-primary/30",
+  success: "glass-strong border-success/30 hover:border-success/50",
+  warning: "glass-strong border-warning/30 hover:border-warning/50",
+  destructive: "glass-strong border-destructive/30 hover:border-destructive/50",
 };
 
 const iconVariantStyles = {
-  default: "bg-primary/10 text-primary",
-  success: "bg-success/10 text-success",
-  warning: "bg-warning/10 text-warning",
-  destructive: "bg-destructive/10 text-destructive",
+  default: "gradient-primary text-primary-foreground",
+  success: "bg-success text-success-foreground",
+  warning: "bg-warning text-warning-foreground",
+  destructive: "bg-destructive text-destructive-foreground",
 };
 
 export function StatCard({ title, value, change, icon: Icon, variant = "default" }: StatCardProps) {
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-xl border p-6 transition-all hover:shadow-lg hover:scale-[1.02] animate-fade-in",
+        "relative overflow-hidden rounded-xl border p-6 transition-all duration-300 hover-lift hover:shadow-xl animate-fade-in group",
         variantStyles[variant]
       )}
     >
       {/* Background Glow */}
-      <div className="absolute -top-12 -right-12 h-24 w-24 rounded-full bg-gradient-to-br from-primary/10 to-accent/10 blur-2xl" />
+      <div className="absolute -top-12 -right-12 h-32 w-32 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 blur-3xl group-hover:scale-110 transition-transform duration-500" />
+      
+      {/* Animated Background Pattern */}
+      <div className="absolute inset-0 bg-gradient-to-br from-transparent via-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
       <div className="relative">
         <div className="flex items-center justify-between">
           <div
             className={cn(
-              "flex h-12 w-12 items-center justify-center rounded-xl",
+              "flex h-14 w-14 items-center justify-center rounded-2xl shadow-lg group-hover:scale-110 transition-all duration-300",
               iconVariantStyles[variant]
             )}
           >
-            <Icon className="h-6 w-6" />
+            <Icon className="h-7 w-7 animate-pulse-slow" />
           </div>
 
           {change && (
             <div
               className={cn(
-                "flex items-center gap-1 text-sm font-medium",
-                change.trend === "up" ? "text-success" : "text-destructive"
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium backdrop-blur-sm border transition-all duration-300 hover:scale-105",
+                change.trend === "up" 
+                  ? "text-success bg-success/10 border-success/20" 
+                  : "text-destructive bg-destructive/10 border-destructive/20"
               )}
             >
               {change.trend === "up" ? (
@@ -65,9 +70,13 @@ export function StatCard({ title, value, change, icon: Icon, variant = "default"
           )}
         </div>
 
-        <div className="mt-4">
-          <p className="text-sm text-muted-foreground">{title}</p>
-          <p className="mt-1 text-3xl font-bold tracking-tight">{value}</p>
+        <div className="mt-5">
+          <p className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">
+            {title}
+          </p>
+          <p className="mt-2 text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
+            {value}
+          </p>
         </div>
       </div>
     </div>
