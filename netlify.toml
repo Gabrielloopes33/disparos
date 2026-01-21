@@ -1,4 +1,12 @@
 [build]
   publish = "dist"
   command = "npm run build"
-  ignore_exposed_secrets = true
+
+[build.environment]
+  # Public configuration variables
+  VITE_WS_URL = "$VITE_WS_URL"
+  VITE_APP_NAME = "$VITE_APP_NAME"
+  VITE_APP_VERSION = "$VITE_APP_VERSION"
+  VITE_SUPABASE_URL = "$VITE_SUPABASE_URL"
+  VITE_EVOLUTION_API_URL = "$VITE_EVOLUTION_API_URL"
+  VITE_N8N_API_URL = "$VITE_N8N_API_URL"
