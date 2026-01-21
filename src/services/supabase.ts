@@ -26,37 +26,6 @@ async function supabaseRequest<T>(
     const result = await response.json();
     return { data: result.data, error: null, count: result.count };
   } catch (error) {
-      ...options,
-      headers,
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Supabase error: ${response.status} - ${errorText}`);
-    }
-
-    // Get count from header if available
-    const countHeader = response.headers.get('content-range');
-    let count: number | undefined;
-    if (countHeader) {
-      const match = countHeader.match(/\/(\d+)$/);
-      if (match) count = parseInt(match[1], 10);
-    }
-
-    // For HEAD requests or empty responses, return empty data
-    const contentLength = response.headers.get('content-length');
-    if (options.method === 'HEAD' || contentLength === '0') {
-      return { data: null, error: null, count };
-    }
-
-    const text = await response.text();
-    if (!text) {
-      return { data: null, error: null, count };
-    }
-
-    const data = JSON.parse(text);
-    return { data, error: null, count };
-  } catch (error) {
     console.error('Supabase request error:', error);
     return { data: null, error: error as Error };
   }

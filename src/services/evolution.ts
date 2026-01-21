@@ -35,29 +35,8 @@ class EvolutionAPI {
       const data = await response.json();
       return { data };
     } catch (error) {
-        ...options.headers,
-      };
-
-      const response = await fetch(url, {
-        ...options,
-        headers,
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      return {
-        status: 'success',
-        response: data,
-      };
-    } catch (error) {
-      console.error('Evolution API Error:', error);
-      return {
-        status: 'error',
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
+      console.error('Evolution API error:', error);
+      throw error;
     }
   }
 
