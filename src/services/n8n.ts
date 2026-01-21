@@ -28,10 +28,10 @@ class N8nAPI {
     options: RequestInit = {}
   ): Promise<N8nApiResponse<T>> {
     try {
-      const url = `${this.baseUrl}/rest${endpoint}`;
+      const url = `${this.baseUrl}/api/v1${endpoint}`;
       const headers = {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.apiToken}`,
+        'X-N8N-API-KEY': this.apiToken,
         ...options.headers,
       };
 
@@ -59,7 +59,9 @@ class N8nAPI {
 
   // Workflow Management
   async getWorkflows(limit: number = 100): Promise<N8nApiResponse<N8nWorkflow[]>> {
-    return this.request<N8nWorkflow[]>(`/workflows?limit=${limit}`);
+    const response = await this.request<{ data: N8nWorkflow[] }>(`/workflows?limit=${limit}`);
+    if (response.error) return { error: response.error };
+    return { data: response.data?.data || [] };
   }
 
   async getWorkflow(id: string): Promise<N8nApiResponse<N8nWorkflow>> {
@@ -109,11 +111,15 @@ class N8nAPI {
 
   // Execution Management
   async getExecutions(limit: number = 50): Promise<N8nApiResponse<N8nExecution[]>> {
-    return this.request<N8nExecution[]>(`/executions?limit=${limit}`);
+    const response = await this.request<{ data: N8nExecution[] }>(`/executions?limit=${limit}`);
+    if (response.error) return { error: response.error };
+    return { data: response.data?.data || [] };
   }
 
   async getWorkflowExecutions(workflowId: string, limit: number = 50): Promise<N8nApiResponse<N8nExecution[]>> {
-    return this.request<N8nExecution[]>(`/workflows/${workflowId}/executions?limit=${limit}`);
+    const response = await this.request<{ data: N8nExecution[] }>(`/executions?workflowId=${workflowId}&limit=${limit}`);
+    if (response.error) return { error: response.error };
+    return { data: response.data?.data || [] };
   }
 
   async getExecution(id: string): Promise<N8nApiResponse<N8nExecution>> {
@@ -335,7 +341,8 @@ class N8nAPI {
     try {
       const response = await fetch(`${this.baseUrl}/healthz`);
       if (response.ok) {
-        return { data: { status: 'healthy' } };
+        const data = await response.json();
+        return { data: { status: data.status === 'ok' ? 'healthy' : data.status } };
       } else {
         throw new Error('Health check failed');
       }

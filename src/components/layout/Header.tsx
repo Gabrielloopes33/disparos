@@ -3,24 +3,30 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useTheme } from "next-themes";
+import { MobileNav } from "./MobileNav";
 
 export function Header() {
   const { theme, setTheme } = useTheme();
 
   return (
     <header className="sticky top-0 z-40 glass-strong border-b border-border/50 shadow-sm">
-      <div className="flex items-center justify-between h-16 px-6">
-        {/* Search */}
-        <div className="relative flex-1 max-w-md hidden sm:block">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar instâncias, campanhas..."
-            className="pl-10 bg-muted/30 border border-border/30 focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:border-primary/50 rounded-xl hover:bg-muted/50 transition-all"
-          />
+      <div className="flex items-center justify-between h-16 px-4 lg:px-6">
+        {/* Mobile Menu + Search */}
+        <div className="flex items-center gap-2">
+          <MobileNav />
+
+          {/* Search - Desktop */}
+          <div className="relative flex-1 max-w-md hidden sm:block">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar instâncias, campanhas..."
+              className="pl-10 bg-muted/30 border border-border/30 focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:border-primary/50 rounded-xl hover:bg-muted/50 transition-all"
+            />
+          </div>
         </div>
-        
+
         {/* Mobile Search Button */}
-        <Button variant="ghost" size="icon" className="sm:hidden">
+        <Button variant="ghost" size="icon" className="sm:hidden lg:hidden">
           <Search className="h-4 w-4" />
         </Button>
 
