@@ -14,7 +14,7 @@ interface Instance {
   id: string;
   name: string;
   phoneNumber?: string;
-  status: "connected" | "disconnected" | "connecting";
+  status: "connected" | "open" | "disconnected" | "connecting" | "opening" | "close" | "qr";
   lastConnected?: string;
 }
 
@@ -27,6 +27,13 @@ interface InstanceCardProps {
 
 const statusConfig = {
   connected: {
+    icon: Wifi,
+    label: "Conectado",
+    color: "text-success",
+    bg: "bg-success/10 border-success/20",
+    dot: "bg-success",
+  },
+  open: {
     icon: Wifi,
     label: "Conectado",
     color: "text-success",
@@ -47,10 +54,34 @@ const statusConfig = {
     bg: "bg-warning/10 border-warning/20",
     dot: "bg-warning animate-pulse",
   },
+  opening: {
+    icon: Wifi,
+    label: "Abrindo...",
+    color: "text-warning",
+    bg: "bg-warning/10 border-warning/20",
+    dot: "bg-warning animate-pulse",
+  },
+  close: {
+    icon: WifiOff,
+    label: "Fechado",
+    color: "text-destructive",
+    bg: "bg-destructive/10 border-destructive/20",
+    dot: "bg-destructive",
+  },
+  qr: {
+    icon: Wifi,
+    label: "Aguardando QR",
+    color: "text-warning",
+    bg: "bg-warning/10 border-warning/20",
+    dot: "bg-warning animate-pulse",
+  },
 };
 
 export function InstanceCard({ instance, onShowQR, onRestart, onDelete }: InstanceCardProps) {
-  const config = statusConfig[instance.status as keyof typeof statusConfig];
+  if (!instance) return null;
+
+  const validStatus = instance.status in statusConfig ? instance.status : 'disconnected';
+  const config = statusConfig[validStatus as keyof typeof statusConfig];
   const StatusIcon = config.icon;
 
   return (

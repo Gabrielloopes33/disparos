@@ -5,12 +5,20 @@ import { useInstances, useConnectInstance, useDeleteInstance } from "@/hooks/use
 import { EvolutionInstance } from "@/types/evolution";
 import { toast } from "sonner";
 
+interface Instance {
+  id: string;
+  name: string;
+  phoneNumber?: string;
+  status: "connected" | "open" | "disconnected" | "connecting" | "opening" | "close" | "qr";
+  lastConnected?: string;
+}
+
 function mapEvolutionInstanceToCard(instance: EvolutionInstance) {
   return {
     id: instance.name,
     name: instance.name,
     phoneNumber: instance.number ? `+${instance.number}` : undefined,
-    status: instance.status as 'connected' | 'disconnected' | 'connecting',
+    status: (instance.connectionStatus || 'disconnected') as Instance['status'],
     lastConnected: instance.updatedAt,
   };
 }

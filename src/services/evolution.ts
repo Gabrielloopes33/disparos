@@ -1,11 +1,11 @@
-import { EvolutionInstance, EvolutionWebhook, EvolutionSettings, EvolutionChatsResponse, EvolutionMessage, EvolutionSendTextParams, EvolutionSendMediaParams, EvolutionStats, Campaign, ActivityLog, ApiResponse, PaginatedResponse } from '@/types/evolution';
+import { EvolutionInstance, EvolutionWebhook, EvolutionSettings, EvolutionChatsResponse, EvolutionMessage, EvolutionSendTextParams, EvolutionSendMediaParams, EvolutionStats, Campaign, ActivityLog, ApiResponse, PaginatedResponse, EvolutionGroup } from '@/types/evolution';
 
 class EvolutionAPI {
   private baseUrl: string;
   private apiKey: string;
 
   constructor() {
-    this.baseUrl = import.meta.env.VITE_EVOLUTION_API_URL || 'http://localhost:8080';
+    this.baseUrl = import.meta.env.VITE_EVOLUTION_API_URL || '/api/evolution';
     this.apiKey = import.meta.env.VITE_EVOLUTION_API_KEY || '';
   }
 
@@ -90,6 +90,116 @@ class EvolutionAPI {
 
   async getQRCode(instanceName: string): Promise<ApiResponse<{ base64: string; asciiQR: string }>> {
     return this.request(`/instance/qrcode/${instanceName}`);
+  }
+
+  // Group Management
+  async getGroups(instanceName: string): Promise<ApiResponse<EvolutionGroup[]>> {
+    const response = await this.request<{ success: boolean; data: EvolutionGroup[] }>(`/group/fetchAllGroups/${instanceName}?getParticipants=false`);
+    if (response.status === 'success' && response.response) {
+      return {
+        status: 'success',
+        response: response.response.data || response.response as unknown as EvolutionGroup[],
+      };
+    }
+    return response as unknown as ApiResponse<EvolutionGroup[]>;
+  }
+
+  // Send Poll to Group
+  async sendPoll(
+    instanceName: string,
+    params: {
+      number: string;
+      name: string;
+      selectableCount: number;
+      values: string[];
+      mentionsEveryOne?: boolean;
+    }
+  ): Promise<ApiResponse<any>> {
+    return this.request(`/message/sendPoll/${instanceName}`, {
+      method: 'POST',
+      body: JSON.stringify(params),
+    });
+  }
+
+  // Update Group Subject (Name)
+  async updateGroupSubject(
+    instanceName: string,
+    groupJid: string,
+    subject: string
+  ): Promise<ApiResponse<any>> {
+    return this.request(`/group/updateGroupSubject/${instanceName}`, {
+      method: 'POST',
+      body: JSON.stringify({
+        groupJid,
+        subject,
+      }),
+    });
+  }
+
+  // Send Message to Group
+  async sendMessage(
+    instanceName: string,
+    params: {
+      remoteJid: string;
+      messageText: string;
+      mentionsEveryOne?: boolean;
+      linkPreview?: boolean;
+    }
+  ): Promise<ApiResponse<EvolutionMessage>> {
+    return this.request(`/message/sendText/${instanceName}`, {
+      method: 'POST',
+      body: JSON.stringify({
+        number: params.remoteJid,
+        text: params.messageText,
+        options: {
+          mentions: params.mentionsEveryOne ? { everyOne: true } : undefined,
+          linkPreview: params.linkPreview,
+        },
+      }),
+    });
+  }
+
+  // Send Media (Image/Video/Document) to Group
+  async sendMediaToGroup(
+    instanceName: string,
+    params: {
+      remoteJid: string;
+      mediaType: 'image' | 'video' | 'document';
+      media: string; // base64 or URL
+      caption?: string;
+      fileName?: string;
+      mimetype?: string;
+      mentionsEveryOne?: boolean;
+    }
+  ): Promise<ApiResponse<EvolutionMessage>> {
+    // Build the request body based on Evolution API format
+    const body: Record<string, any> = {
+      number: params.remoteJid,
+      mediatype: params.mediaType,
+      media: params.media,
+    };
+
+    if (params.caption) {
+      body.caption = params.caption;
+    }
+
+    if (params.fileName) {
+      body.fileName = params.fileName;
+    }
+
+    if (params.mimetype) {
+      body.mimetype = params.mimetype;
+    }
+
+    // Add mentions if needed
+    if (params.mentionsEveryOne) {
+      body.mentionsEveryOne = true;
+    }
+
+    return this.request(`/message/sendMedia/${instanceName}`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
   }
 
   // Webhook Management

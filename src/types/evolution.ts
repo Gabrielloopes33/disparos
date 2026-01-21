@@ -1,10 +1,30 @@
 // Evolution API Integration Types
+
+// Group Types
+export interface EvolutionGroup {
+  id: string;
+  subject: string;
+  subjectOwner?: string;
+  subjectTime?: number;
+  pictureUrl?: string | null;
+  size: number;
+  creation?: number;
+  owner?: string;
+  desc?: string;
+  descId?: string;
+  restrict?: boolean;
+  announce?: boolean;
+  isCommunity?: boolean;
+  isCommunityAnnounce?: boolean;
+}
+
 export interface EvolutionInstance {
   id: string;
   name: string;
   number?: string;
   profileName?: string;
   profilePictureUrl?: string;
+  connectionStatus: 'open' | 'connecting' | 'close' | 'connecting';
   status: 'connected' | 'disconnected' | 'connecting' | 'opening' | 'close' | 'qr';
   qrcode?: {
     base64: string;
@@ -194,4 +214,29 @@ export interface ActivityLog {
   instanceName?: string;
   metadata?: Record<string, any>;
   userId?: string;
+}
+
+// Dispatch Log Types
+export interface DispatchLog {
+  id: string;
+  name: string;
+  instanceName: string;
+  type: 'groups' | 'contacts';
+  message: string;
+  targets: DispatchTarget[];
+  totalTargets: number;
+  sentCount: number;
+  failedCount: number;
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  startedAt: string;
+  completedAt?: string;
+  mentionEveryone: boolean;
+}
+
+export interface DispatchTarget {
+  id: string;
+  name: string;
+  status: 'pending' | 'sent' | 'failed';
+  sentAt?: string;
+  error?: string;
 }

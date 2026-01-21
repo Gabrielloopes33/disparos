@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient, UseQueryOptions, UseMutationOptions } from '@tanstack/react-query';
 import { evolutionAPI } from '@/services/evolution';
-import { EvolutionInstance, EvolutionWebhook, EvolutionSettings, EvolutionStats, Campaign, ActivityLog, ApiResponse } from '@/types/evolution';
+import { EvolutionInstance, EvolutionWebhook, EvolutionSettings, EvolutionStats, Campaign, ActivityLog, ApiResponse, EvolutionGroup } from '@/types/evolution';
 
 // Instance Hooks
 export function useInstances(options?: UseQueryOptions<EvolutionInstance[], Error>) {
@@ -22,6 +22,147 @@ export function useInstances(options?: UseQueryOptions<EvolutionInstance[], Erro
     refetchInterval: 30000, // Refresh every 30 seconds
     retry: false, // Disable retries to avoid infinite loop
     ...options,
+  });
+}
+
+export function useGroups(instanceName: string, options?: UseQueryOptions<EvolutionGroup[], Error>) {
+  return useQuery({
+    queryKey: ['evolution', 'groups', instanceName],
+    queryFn: async () => {
+      try {
+        const response = await evolutionAPI.getGroups(instanceName);
+        if (response.status === 'error') {
+          throw new Error(response.error || 'Failed to fetch groups');
+        }
+        return response.response || [];
+      } catch (error) {
+        // Fallback to empty array if API is not available
+        console.warn('Evolution API not available, returning empty groups');
+        return [];
+      }
+    },
+    enabled: !!instanceName,
+    refetchInterval: 60000, // Refresh every minute
+    retry: false,
+    ...options,
+  });
+}
+
+export function useUpdateGroupSubject(instanceName: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      groupJid,
+      subject,
+    }: {
+      groupJid: string;
+      subject: string;
+    }) => {
+      const response = await evolutionAPI.updateGroupSubject(instanceName, groupJid, subject);
+      if (response.status === 'error') {
+        throw new Error(response.error || 'Failed to update group subject');
+      }
+      return response.response;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['evolution', 'groups', instanceName] });
+    },
+  });
+}
+
+export function useSendPoll(instanceName: string) {
+  return useMutation({
+    mutationFn: async ({
+      number,
+      name,
+      selectableCount,
+      values,
+      mentionsEveryOne,
+    }: {
+      number: string;
+      name: string;
+      selectableCount: number;
+      values: string[];
+      mentionsEveryOne?: boolean;
+    }) => {
+      const response = await evolutionAPI.sendPoll(instanceName, {
+        number,
+        name,
+        selectableCount,
+        values,
+        mentionsEveryOne,
+      });
+      if (response.status === 'error') {
+        throw new Error(response.error || 'Failed to send poll');
+      }
+      return response.response;
+    },
+  });
+}
+
+export function useSendMessageMutation(instanceName: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      remoteJid,
+      messageText,
+      options,
+    }: {
+      remoteJid: string;
+      messageText: string;
+      options?: any;
+    }) => {
+      const response = await evolutionAPI.sendMessage(instanceName, {
+        remoteJid,
+        messageText,
+        ...options,
+      });
+      if (response.status === 'error') {
+        throw new Error(response.error || 'Failed to send message');
+      }
+      return response.response;
+    },
+    onSuccess: () => {
+      // Invalidate related queries if needed
+    },
+  });
+}
+
+export function useSendMediaMutation(instanceName: string) {
+  return useMutation({
+    mutationFn: async ({
+      remoteJid,
+      mediaType,
+      media,
+      caption,
+      fileName,
+      mimetype,
+      mentionsEveryOne,
+    }: {
+      remoteJid: string;
+      mediaType: 'image' | 'video' | 'document';
+      media: string;
+      caption?: string;
+      fileName?: string;
+      mimetype?: string;
+      mentionsEveryOne?: boolean;
+    }) => {
+      const response = await evolutionAPI.sendMediaToGroup(instanceName, {
+        remoteJid,
+        mediaType,
+        media,
+        caption,
+        fileName,
+        mimetype,
+        mentionsEveryOne,
+      });
+      if (response.status === 'error') {
+        throw new Error(response.error || 'Failed to send media');
+      }
+      return response.response;
+    },
   });
 }
 

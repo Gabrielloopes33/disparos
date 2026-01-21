@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   Smartphone,
   Send,
+  ListTodo,
   FileText,
   Settings,
   ChevronLeft,
@@ -29,15 +30,21 @@ const navItems = [
     path: "/instances",
     badge: "22"
   },
-  { 
-    icon: Send, 
-    label: "Disparos", 
+  {
+    icon: Send,
+    label: "Disparos",
     path: "/dispatch",
     badge: null
   },
-  { 
-    icon: FileText, 
-    label: "Logs", 
+  {
+    icon: ListTodo,
+    label: "Fila n8n",
+    path: "/queue",
+    badge: null
+  },
+  {
+    icon: FileText,
+    label: "Logs",
     path: "/logs",
     badge: "12"
   },
