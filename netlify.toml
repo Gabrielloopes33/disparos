@@ -1,0 +1,4 @@
+[build]
+  publish = "dist"
+  command = "npm run build"
+  ignore_exposed_secrets = true
