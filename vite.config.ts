@@ -6,8 +6,9 @@ import path from "path";
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
-    port: 8080,
-    strictPort: true,
+    // Allow overriding dev port with DEV_PORT env var to avoid conflicts
+    port: Number(process.env.DEV_PORT) || 5173,
+    strictPort: false,
     hmr: {
       overlay: false,
     },
