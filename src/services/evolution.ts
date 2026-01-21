@@ -5,8 +5,9 @@ class EvolutionAPI {
   private apiKey: string;
 
   constructor() {
-    this.baseUrl = import.meta.env.VITE_EVOLUTION_API_URL || '/api/evolution';
-    this.apiKey = import.meta.env.VITE_EVOLUTION_API_KEY || '';
+    // Use Netlify function instead of direct API calls
+    this.baseUrl = '/.netlify/functions/evolution-proxy';
+    this.apiKey = ''; // Not needed anymore, handled server-side
   }
 
   private async request<T>(
@@ -14,10 +15,26 @@ class EvolutionAPI {
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
     try {
-      const url = `${this.baseUrl}${endpoint}`;
-      const headers = {
-        'Content-Type': 'application/json',
-        'apikey': this.apiKey,
+      const response = await fetch(this.baseUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          endpoint,
+          method: options.method || 'GET',
+          body: options.body ? JSON.parse(options.body as string) : undefined,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || `HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return { data };
+    } catch (error) {
         ...options.headers,
       };
 

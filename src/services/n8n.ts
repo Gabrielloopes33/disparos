@@ -19,8 +19,9 @@ class N8nAPI {
   private apiToken: string;
 
   constructor() {
-    this.baseUrl = import.meta.env.VITE_N8N_API_URL || '/api/n8n';
-    this.apiToken = import.meta.env.VITE_N8N_API_TOKEN || '';
+    // Use Netlify function instead of direct API calls
+    this.baseUrl = '/.netlify/functions/n8n-proxy';
+    this.apiToken = ''; // Not needed anymore, handled server-side
   }
 
   private async request<T>(
@@ -28,21 +29,21 @@ class N8nAPI {
     options: RequestInit = {}
   ): Promise<N8nApiResponse<T>> {
     try {
-      const url = `${this.baseUrl}/api/v1${endpoint}`;
-      const headers = {
-        'Content-Type': 'application/json',
-        'X-N8N-API-KEY': this.apiToken,
-        ...options.headers,
-      };
-
-      const response = await fetch(url, {
-        ...options,
-        headers,
+      const response = await fetch(this.baseUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          endpoint,
+          method: options.method || 'GET',
+          body: options.body ? JSON.parse(options.body as string) : undefined,
+        }),
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.error?.message || `HTTP error! status: ${response.status}`);
+        throw new Error(errorData?.error || `HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();

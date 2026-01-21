@@ -3,10 +3,18 @@
   command = "npm run build"
 
 [build.environment]
-  # Public configuration variables
+  # Public configuration variables (client-side)
   VITE_WS_URL = "$VITE_WS_URL"
   VITE_APP_NAME = "$VITE_APP_NAME"
   VITE_APP_VERSION = "$VITE_APP_VERSION"
   VITE_SUPABASE_URL = "$VITE_SUPABASE_URL"
   VITE_EVOLUTION_API_URL = "$VITE_EVOLUTION_API_URL"
   VITE_N8N_API_URL = "$VITE_N8N_API_URL"
+
+  # Server-side environment variables for Netlify Functions (secure)
+  N8N_API_URL = "https://n8n.codirect.com.br"
+  N8N_API_TOKEN = "$N8N_API_TOKEN"
+  EVOLUTION_API_URL = "https://evolution.codirect.com.br"
+  EVOLUTION_API_KEY = "$EVOLUTION_API_KEY"
+  SUPABASE_URL = "https://supabase.codirect.com.br"
+  SUPABASE_ANON_KEY = "$SUPABASE_ANON_KEY"

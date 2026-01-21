@@ -1,23 +1,31 @@
-// Using direct fetch with proxy instead of Supabase client
-// (to avoid SSL certificate issues with self-signed certs)
-
-const SUPABASE_URL = '/api/supabase';
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+// Using Netlify function proxy for secure API calls
+const SUPABASE_PROXY_URL = '/.netlify/functions/supabase-proxy';
 
 async function supabaseRequest<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<{ data: T | null; error: Error | null; count?: number }> {
   try {
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      'apikey': SUPABASE_ANON_KEY,
-      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-      'Prefer': 'count=exact',
-      ...options.headers as Record<string, string>,
-    };
+    const response = await fetch(SUPABASE_PROXY_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        endpoint,
+        method: options.method || 'GET',
+        body: options.body ? JSON.parse(options.body as string) : undefined,
+      }),
+    });
 
-    const response = await fetch(`${SUPABASE_URL}/rest/v1${endpoint}`, {
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+      return { data: null, error: new Error(errorData.error || `HTTP error! status: ${response.status}`) };
+    }
+
+    const result = await response.json();
+    return { data: result.data, error: null, count: result.count };
+  } catch (error) {
       ...options,
       headers,
     });
