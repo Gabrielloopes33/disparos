@@ -35,3 +35,6 @@ dist-ssr
 *.key
 *.p12
 secrets/
+
+# Local Netlify folder
+.netlify
