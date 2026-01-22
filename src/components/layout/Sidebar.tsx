@@ -12,6 +12,7 @@ import {
   Zap,
   Activity,
   BarChart3,
+  Rocket,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,12 @@ const navItems = [
     label: "Instâncias", 
     path: "/instances",
     badge: "22"
+  },
+  {
+    icon: Rocket,
+    label: "Campanhas",
+    path: "/campaigns",
+    badge: "novo"
   },
   {
     icon: Send,
