@@ -33,7 +33,7 @@ class EvolutionAPI {
       }
 
       const data = await response.json();
-      return { data };
+      return { status: 'success', response: data };
     } catch (error) {
       console.error('Evolution API error:', error);
       throw error;
