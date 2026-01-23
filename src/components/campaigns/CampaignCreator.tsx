@@ -7,14 +7,20 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Sparkles, Eye, Save, Play, RefreshCw, Copy, Check } from "lucide-react";
+import { Loader2, Sparkles, Eye, Save, Play, RefreshCw, Copy, Check, Square } from "lucide-react";
 import { geminiService, type CampaignData, type TemplateVariation } from "@/services/gemini";
+import { n8nAPI } from "@/services/n8n";
 import { useToast } from "@/hooks/use-toast";
 import { TemplatePreview } from "./TemplatePreview";
+
+// ID do workflow de disparo no n8n (pode ser configurado nas settings futuramente)
+const DISPATCH_WORKFLOW_ID = "vHh6iey3Cc5imWx9";
 
 export function CampaignCreator() {
   const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isStartingDispatch, setIsStartingDispatch] = useState(false);
+  const [dispatchExecutionId, setDispatchExecutionId] = useState<string | null>(null);
   const [step, setStep] = useState<'config' | 'templates' | 'review'>('config');
 
   // Form state
@@ -93,11 +99,79 @@ export function CampaignCreator() {
   };
 
   const handleStartDispatch = async () => {
-    // TODO: Integrar com n8n para iniciar disparo
-    toast({
-      title: "Disparo iniciado!",
-      description: "O workflow do n8n foi acionado",
-    });
+    if (selectedTemplate === null) return;
+
+    setIsStartingDispatch(true);
+    try {
+      const template = templates[selectedTemplate];
+
+      // Preparar dados para o workflow n8n
+      const workflowInput = {
+        campanha: {
+          tema: campaignData.tema,
+          objetivo: campaignData.objetivo,
+          dataEvento: campaignData.dataEvento,
+          link: campaignData.link,
+          detalhes: campaignData.detalhes,
+        },
+        template: {
+          id: template.id,
+          nome: template.nome,
+          tom: template.tom,
+          saudacoes: template.saudacoes,
+          corpo: template.corpo,
+          cta: template.cta,
+          optout: template.optout,
+        },
+      };
+
+      const response = await n8nAPI.executeWorkflow(DISPATCH_WORKFLOW_ID, workflowInput);
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      setDispatchExecutionId(response.data?.id || null);
+
+      toast({
+        title: "Disparo iniciado!",
+        description: `Workflow executado com sucesso. ID: ${response.data?.id || 'N/A'}`,
+      });
+    } catch (error) {
+      console.error('Error starting dispatch:', error);
+      toast({
+        title: "Erro ao iniciar disparo",
+        description: error instanceof Error ? error.message : "Falha ao acionar o workflow do n8n",
+        variant: "destructive",
+      });
+    } finally {
+      setIsStartingDispatch(false);
+    }
+  };
+
+  const handleStopDispatch = async () => {
+    if (!dispatchExecutionId) return;
+
+    try {
+      const response = await n8nAPI.stopExecution(dispatchExecutionId);
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      toast({
+        title: "Disparo interrompido",
+        description: "O workflow foi parado com sucesso",
+      });
+      setDispatchExecutionId(null);
+    } catch (error) {
+      console.error('Error stopping dispatch:', error);
+      toast({
+        title: "Erro ao parar disparo",
+        description: error instanceof Error ? error.message : "Falha ao parar o workflow",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -321,14 +395,46 @@ export function CampaignCreator() {
               </div>
             </div>
 
+            {dispatchExecutionId && (
+              <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
+                <div className="flex items-center gap-2 text-green-600">
+                  <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                  <span className="font-medium">Disparo em andamento</span>
+                </div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  ID da execução: {dispatchExecutionId}
+                </p>
+              </div>
+            )}
+
             <div className="flex gap-3 justify-end">
-              <Button variant="outline" onClick={() => setStep('templates')}>
+              <Button variant="outline" onClick={() => setStep('templates')} disabled={isStartingDispatch}>
                 Voltar
               </Button>
-              <Button onClick={handleStartDispatch} className="gap-2 bg-green-600 hover:bg-green-700">
-                <Play className="h-4 w-4" />
-                Iniciar Disparo
-              </Button>
+              {dispatchExecutionId ? (
+                <Button onClick={handleStopDispatch} variant="destructive" className="gap-2">
+                  <Square className="h-4 w-4" />
+                  Parar Disparo
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleStartDispatch}
+                  disabled={isStartingDispatch}
+                  className="gap-2 bg-green-600 hover:bg-green-700"
+                >
+                  {isStartingDispatch ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Iniciando...
+                    </>
+                  ) : (
+                    <>
+                      <Play className="h-4 w-4" />
+                      Iniciar Disparo
+                    </>
+                  )}
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>

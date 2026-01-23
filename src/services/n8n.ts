@@ -110,6 +110,16 @@ class N8nAPI {
     });
   }
 
+  async executeWorkflow(
+    id: string,
+    inputData?: Record<string, any>
+  ): Promise<N8nApiResponse<N8nExecution>> {
+    return this.request<N8nExecution>(`/workflows/${id}/run`, {
+      method: 'POST',
+      body: JSON.stringify(inputData ? { data: inputData } : {}),
+    });
+  }
+
   // Execution Management
   async getExecutions(limit: number = 50): Promise<N8nApiResponse<N8nExecution[]>> {
     const response = await this.request<{ data: N8nExecution[] }>(`/executions?limit=${limit}`);
