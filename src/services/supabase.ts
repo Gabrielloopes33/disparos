@@ -207,3 +207,144 @@ export const queueService = {
     };
   },
 };
+
+// Types for scheduled dispatches
+export interface ScheduledDispatch {
+  id?: string;
+  created_at?: string;
+  instance_name: string;
+  scheduled_for: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
+  message: string;
+  media_type?: string | null;
+  media_base64?: string | null;
+  media_filename?: string | null;
+  media_mimetype?: string | null;
+  mention_everyone: boolean;
+  groups: { id: string; name: string }[];
+  total_groups: number;
+  sent_count?: number;
+  error_count?: number;
+  completed_at?: string | null;
+  error_message?: string | null;
+}
+
+export interface ScheduledDispatchInput {
+  instance_name: string;
+  scheduled_for: string;
+  message: string;
+  media_type?: string | null;
+  media_base64?: string | null;
+  media_filename?: string | null;
+  media_mimetype?: string | null;
+  mention_everyone: boolean;
+  groups: { id: string; name: string }[];
+}
+
+// Scheduled Dispatches Operations
+export const scheduledDispatchService = {
+  // Get all scheduled dispatches
+  async getScheduledDispatches(limit = 50, offset = 0): Promise<{ data: ScheduledDispatch[]; count: number }> {
+    const { data, error, count } = await supabaseRequest<ScheduledDispatch[]>(
+      `/scheduled_dispatches?select=*&order=scheduled_for.asc&offset=${offset}&limit=${limit}`
+    );
+
+    if (error) throw error;
+    return { data: data || [], count: count || 0 };
+  },
+
+  // Get pending dispatches (for execution)
+  async getPendingDispatches(): Promise<ScheduledDispatch[]> {
+    const now = new Date().toISOString();
+    const { data, error } = await supabaseRequest<ScheduledDispatch[]>(
+      `/scheduled_dispatches?select=*&status=eq.pending&scheduled_for=lte.${now}&order=scheduled_for.asc`
+    );
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  // Get upcoming dispatches
+  async getUpcomingDispatches(): Promise<ScheduledDispatch[]> {
+    const { data, error } = await supabaseRequest<ScheduledDispatch[]>(
+      `/scheduled_dispatches?select=*&status=eq.pending&order=scheduled_for.asc&limit=20`
+    );
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  // Create a new scheduled dispatch
+  async createScheduledDispatch(dispatch: ScheduledDispatchInput): Promise<ScheduledDispatch> {
+    const payload = {
+      ...dispatch,
+      status: 'pending',
+      total_groups: dispatch.groups.length,
+      sent_count: 0,
+      error_count: 0,
+    };
+
+    const { data, error } = await supabaseRequest<ScheduledDispatch[]>(
+      `/scheduled_dispatches?select=*`,
+      {
+        method: 'POST',
+        headers: { 'Prefer': 'return=representation' },
+        body: JSON.stringify(payload),
+      }
+    );
+
+    if (error) throw error;
+    return data?.[0] as ScheduledDispatch;
+  },
+
+  // Update dispatch status
+  async updateDispatchStatus(
+    id: string,
+    status: ScheduledDispatch['status'],
+    updates?: Partial<ScheduledDispatch>
+  ): Promise<void> {
+    const payload = {
+      status,
+      ...updates,
+      ...(status === 'completed' || status === 'failed' ? { completed_at: new Date().toISOString() } : {}),
+    };
+
+    const { error } = await supabaseRequest(
+      `/scheduled_dispatches?id=eq.${encodeURIComponent(id)}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
+      }
+    );
+
+    if (error) throw error;
+  },
+
+  // Cancel a scheduled dispatch
+  async cancelDispatch(id: string): Promise<void> {
+    await this.updateDispatchStatus(id, 'cancelled');
+  },
+
+  // Delete a scheduled dispatch
+  async deleteDispatch(id: string): Promise<void> {
+    const { error } = await supabaseRequest(
+      `/scheduled_dispatches?id=eq.${encodeURIComponent(id)}`,
+      { method: 'DELETE' }
+    );
+
+    if (error) throw error;
+  },
+
+  // Update progress during execution
+  async updateProgress(id: string, sentCount: number, errorCount: number): Promise<void> {
+    const { error } = await supabaseRequest(
+      `/scheduled_dispatches?id=eq.${encodeURIComponent(id)}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ sent_count: sentCount, error_count: errorCount }),
+      }
+    );
+
+    if (error) throw error;
+  },
+};

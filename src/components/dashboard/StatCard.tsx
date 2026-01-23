@@ -81,9 +81,6 @@ export function StatCard({ title, value, change, icon: Icon, variant = "default"
           <p className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">
             {title}
           </p>
-          <p className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">
-            {title}
-          </p>
           <p className="mt-2 text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
             {value}
           </p>

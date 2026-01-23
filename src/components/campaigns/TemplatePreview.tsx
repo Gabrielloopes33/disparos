@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, Copy, Eye, ChevronDown, ChevronUp } from "lucide-react";
+import { Check, Copy, Eye, ChevronDown, ChevronUp, Square, CheckSquare } from "lucide-react";
 import { type TemplateVariation } from "@/services/gemini";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -11,9 +11,10 @@ interface TemplatePreviewProps {
   template: TemplateVariation;
   isSelected: boolean;
   onSelect: () => void;
+  multiSelect?: boolean;
 }
 
-export function TemplatePreview({ template, isSelected, onSelect }: TemplatePreviewProps) {
+export function TemplatePreview({ template, isSelected, onSelect, multiSelect = false }: TemplatePreviewProps) {
   const { toast } = useToast();
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -138,7 +139,7 @@ export function TemplatePreview({ template, isSelected, onSelect }: TemplatePrev
           </div>
         )}
 
-        {/* Ações */}
+        {/* Acoes */}
         <div className="flex gap-2 pt-2">
           <Button
             variant="outline"
@@ -161,7 +162,11 @@ export function TemplatePreview({ template, isSelected, onSelect }: TemplatePrev
               onSelect();
             }}
           >
-            {isSelected ? <Check className="h-3 w-3 mr-1" /> : null}
+            {multiSelect ? (
+              isSelected ? <CheckSquare className="h-3 w-3 mr-1" /> : <Square className="h-3 w-3 mr-1" />
+            ) : (
+              isSelected ? <Check className="h-3 w-3 mr-1" /> : null
+            )}
             {isSelected ? 'Selecionado' : 'Selecionar'}
           </Button>
         </div>

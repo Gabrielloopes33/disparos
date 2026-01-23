@@ -1,8 +1,14 @@
 import { useState, useRef } from "react";
-import { Upload, Send, Users, FileSpreadsheet, Loader2, CheckCircle2, AlertCircle, Image, X, FileVideo, FileText } from "lucide-react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { Upload, Send, Users, FileSpreadsheet, Loader2, CheckCircle2, AlertCircle, Image, X, FileVideo, FileText, Clock, CalendarIcon, CalendarClock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -15,6 +21,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { useInstances, useGroups, useSendMessageMutation, useSendMediaMutation } from "@/hooks/useEvolution";
 import { useDispatchLogs } from "@/hooks/useDispatchLogs";
+import { scheduledDispatchService } from "@/services/supabase";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { EvolutionGroup } from "@/types/evolution";
 
@@ -39,7 +47,13 @@ export function DispatchForm() {
   const [sendProgress, setSendProgress] = useState<{ sent: number; total: number; current?: string }>({ sent: 0, total: 0 });
   const [selectedMedia, setSelectedMedia] = useState<SelectedMedia | null>(null);
 
+  // Scheduling states
+  const [isScheduled, setIsScheduled] = useState(false);
+  const [scheduleDate, setScheduleDate] = useState<Date | undefined>(undefined);
+  const [scheduleTime, setScheduleTime] = useState("09:00");
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const queryClient = useQueryClient();
 
   // Fetch instances
   const { data: instances, isLoading: loadingInstances } = useInstances();
@@ -253,6 +267,92 @@ export function DispatchForm() {
     setSelectedGroups([]);
     setMessage("");
     removeMedia();
+  };
+
+  const [isScheduling, setIsScheduling] = useState(false);
+
+  const handleScheduleDispatch = async () => {
+    if (!selectedInstance) {
+      toast.error("Selecione uma instancia");
+      return;
+    }
+
+    if (selectedGroups.length === 0) {
+      toast.error("Selecione pelo menos um grupo");
+      return;
+    }
+
+    if (!message.trim() && !selectedMedia) {
+      toast.error("Digite uma mensagem ou selecione uma midia");
+      return;
+    }
+
+    if (!scheduleDate || !scheduleTime) {
+      toast.error("Selecione data e horario para o agendamento");
+      return;
+    }
+
+    // Combine date and time
+    const [hours, minutes] = scheduleTime.split(':').map(Number);
+    const scheduledDateTime = new Date(scheduleDate);
+    scheduledDateTime.setHours(hours, minutes, 0, 0);
+
+    // Validate that scheduled time is in the future
+    if (scheduledDateTime <= new Date()) {
+      toast.error("O horario agendado deve ser no futuro");
+      return;
+    }
+
+    setIsScheduling(true);
+
+    try {
+      // Prepare schedule data for Supabase
+      const scheduleData = {
+        instance_name: selectedInstance,
+        scheduled_for: scheduledDateTime.toISOString(),
+        message: message,
+        media_type: selectedMedia?.type || null,
+        media_base64: selectedMedia?.base64 || null,
+        media_filename: selectedMedia?.file.name || null,
+        media_mimetype: selectedMedia?.mimetype || null,
+        mention_everyone: mentionEveryone,
+        groups: selectedGroups.map(groupId => {
+          const group = groups?.find(g => g.id === groupId);
+          return {
+            id: groupId,
+            name: group?.subject || groupId,
+          };
+        }),
+      };
+
+      // Save to Supabase
+      await scheduledDispatchService.createScheduledDispatch(scheduleData);
+
+      // Invalidate queries to refresh the list
+      queryClient.invalidateQueries({ queryKey: ['scheduled-dispatches'] });
+
+      toast.success(
+        `Disparo agendado para ${format(scheduledDateTime, "dd/MM/yyyy 'as' HH:mm", { locale: ptBR })}`,
+        {
+          description: `${selectedGroups.length} grupo(s) receberao a mensagem`,
+        }
+      );
+
+      // Clear form after scheduling
+      setSelectedGroups([]);
+      setMessage("");
+      removeMedia();
+      setIsScheduled(false);
+      setScheduleDate(undefined);
+      setScheduleTime("09:00");
+    } catch (error) {
+      console.error('Erro ao agendar disparo:', error);
+      toast.error("Erro ao agendar disparo", {
+        description: error instanceof Error ? error.message : "Tente novamente",
+      });
+    } finally {
+      setIsScheduling(false);
+    }
   };
 
   return (
@@ -497,6 +597,92 @@ export function DispatchForm() {
           </div>
         </div>
 
+        {/* Scheduling */}
+        <div className="space-y-4 p-4 rounded-lg border border-border bg-muted/30">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
+                <CalendarClock className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <Label className="text-base font-medium">Agendar Disparo</Label>
+                <p className="text-xs text-muted-foreground">
+                  Programe o envio para data e hora especificas
+                </p>
+              </div>
+            </div>
+            <Switch
+              checked={isScheduled}
+              onCheckedChange={setIsScheduled}
+            />
+          </div>
+
+          {isScheduled && (
+            <div className="space-y-4 pt-4 border-t border-border animate-fade-in">
+              <div className="grid grid-cols-2 gap-4">
+                {/* Date Picker */}
+                <div className="space-y-2">
+                  <Label className="text-sm">Data</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !scheduleDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {scheduleDate ? (
+                          format(scheduleDate, "dd 'de' MMMM", { locale: ptBR })
+                        ) : (
+                          "Selecione a data"
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={scheduleDate}
+                        onSelect={setScheduleDate}
+                        disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                        locale={ptBR}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                {/* Time Picker */}
+                <div className="space-y-2">
+                  <Label className="text-sm">Horario</Label>
+                  <div className="relative">
+                    <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="time"
+                      value={scheduleTime}
+                      onChange={(e) => setScheduleTime(e.target.value)}
+                      className="pl-9"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {scheduleDate && scheduleTime && (
+                <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Clock className="h-4 w-4 text-primary" />
+                    <span className="font-medium">Agendado para:</span>
+                    <span className="text-primary">
+                      {format(scheduleDate, "dd/MM/yyyy", { locale: ptBR })} as {scheduleTime}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Sending Progress */}
         {isSending && (
           <div className="p-4 border rounded-lg bg-primary/5 border-primary/20">
@@ -525,23 +711,49 @@ export function DispatchForm() {
 
         {/* Actions */}
         <div className="flex items-center gap-3 pt-4 border-t border-border">
-          <Button
-            className="flex-1 gap-2"
-            onClick={handleDispatch}
-            disabled={isSending || selectedGroups.length === 0 || (!message.trim() && !selectedMedia)}
-          >
-            {isSending ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Enviando...
-              </>
-            ) : (
-              <>
-                <Send className="h-4 w-4" />
-                Iniciar Disparo ({selectedGroups.length} grupos)
-              </>
-            )}
-          </Button>
+          {isScheduled ? (
+            <Button
+              className="flex-1 gap-2"
+              onClick={handleScheduleDispatch}
+              disabled={
+                isScheduling ||
+                selectedGroups.length === 0 ||
+                (!message.trim() && !selectedMedia) ||
+                !scheduleDate ||
+                !scheduleTime
+              }
+            >
+              {isScheduling ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Agendando...
+                </>
+              ) : (
+                <>
+                  <CalendarClock className="h-4 w-4" />
+                  Agendar Disparo ({selectedGroups.length} grupos)
+                </>
+              )}
+            </Button>
+          ) : (
+            <Button
+              className="flex-1 gap-2"
+              onClick={handleDispatch}
+              disabled={isSending || selectedGroups.length === 0 || (!message.trim() && !selectedMedia)}
+            >
+              {isSending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Enviando...
+                </>
+              ) : (
+                <>
+                  <Send className="h-4 w-4" />
+                  Iniciar Disparo ({selectedGroups.length} grupos)
+                </>
+              )}
+            </Button>
+          )}
         </div>
       </div>
     </div>

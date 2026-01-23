@@ -3,6 +3,7 @@ import { DispatchForm } from "@/components/dispatch/DispatchForm";
 import { CampaignTable } from "@/components/dispatch/CampaignTable";
 import { GroupRenameForm } from "@/components/dispatch/GroupRenameForm";
 import { PollForm } from "@/components/dispatch/PollForm";
+import { ScheduledDispatchesList } from "@/components/dispatch/ScheduledDispatchesList";
 
 const Dispatch = () => {
   return (
@@ -14,7 +15,10 @@ const Dispatch = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <DispatchForm />
+          <div className="space-y-6">
+            <DispatchForm />
+            <ScheduledDispatchesList />
+          </div>
           <div className="space-y-6">
             <PollForm />
             <GroupRenameForm />

@@ -1,0 +1,394 @@
+{
+  "name": "Executar Disparos Agendados",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 1
+            }
+          ]
+        }
+      },
+      "name": "A cada 1 minuto",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM scheduled_dispatches WHERE status = 'pending' AND scheduled_for <= NOW() ORDER BY scheduled_for ASC LIMIT 5",
+        "options": {}
+      },
+      "name": "Buscar Agendamentos Pendentes",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [450, 300],
+      "credentials": {
+        "postgres": {
+          "id": "SUPABASE_CREDENTIALS_ID",
+          "name": "Supabase PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-1",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "Tem Agendamentos?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "schema": "public",
+        "table": "scheduled_dispatches",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "status": "processing"
+          }
+        },
+        "options": {
+          "typeValidation": "strict"
+        },
+        "where": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $json.id }}"
+          }
+        }
+      },
+      "name": "Atualizar Status Processing",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [850, 200],
+      "credentials": {
+        "postgres": {
+          "id": "SUPABASE_CREDENTIALS_ID",
+          "name": "Supabase PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extrair dados do agendamento\nconst dispatch = $input.first().json;\n\nconst groups = typeof dispatch.groups === 'string' \n  ? JSON.parse(dispatch.groups) \n  : dispatch.groups;\n\n// Preparar items para cada grupo\nreturn groups.map(group => ({\n  json: {\n    dispatchId: dispatch.id,\n    instanceName: dispatch.instance_name,\n    groupId: group.id,\n    groupName: group.name,\n    message: dispatch.message,\n    mediaType: dispatch.media_type,\n    mediaBase64: dispatch.media_base64,\n    mediaFilename: dispatch.media_filename,\n    mediaMimetype: dispatch.media_mimetype,\n    mentionEveryone: dispatch.mention_everyone,\n    totalGroups: groups.length\n  }\n}));"
+      },
+      "name": "Preparar Grupos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1050, 200]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {
+          "reset": false
+        }
+      },
+      "name": "Loop por Grupo",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3.1,
+      "position": [1250, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-media",
+              "leftValue": "={{ $json.mediaType }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "Tem Midia?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1450, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.EVOLUTION_API_URL }}/message/sendText/{{ $json.instanceName }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"number\": \"{{ $json.groupId }}\",\n  \"text\": \"{{ $json.message }}\",\n  \"options\": {\n    \"mentionsEveryOne\": {{ $json.mentionEveryone }}\n  }\n}",
+        "options": {}
+      },
+      "name": "Enviar Texto",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1650, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "EVOLUTION_API_CREDENTIALS_ID",
+          "name": "Evolution API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.EVOLUTION_API_URL }}/message/sendMedia/{{ $json.instanceName }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"number\": \"{{ $json.groupId }}\",\n  \"mediatype\": \"{{ $json.mediaType }}\",\n  \"media\": \"{{ $json.mediaBase64 }}\",\n  \"caption\": \"{{ $json.message }}\",\n  \"fileName\": \"{{ $json.mediaFilename }}\",\n  \"mimetype\": \"{{ $json.mediaMimetype }}\",\n  \"options\": {\n    \"mentionsEveryOne\": {{ $json.mentionEveryone }}\n  }\n}",
+        "options": {}
+      },
+      "name": "Enviar Midia",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1650, 100],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "EVOLUTION_API_CREDENTIALS_ID",
+          "name": "Evolution API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 2,
+        "unit": "seconds"
+      },
+      "name": "Aguardar 2s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [1850, 200]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "schema": "public",
+        "table": "scheduled_dispatches",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "status": "completed",
+            "completed_at": "={{ $now.toISO() }}",
+            "sent_count": "={{ $json.totalGroups }}"
+          }
+        },
+        "options": {},
+        "where": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $json.dispatchId }}"
+          }
+        }
+      },
+      "name": "Marcar Concluido",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [2050, 200],
+      "credentials": {
+        "postgres": {
+          "id": "SUPABASE_CREDENTIALS_ID",
+          "name": "Supabase PostgreSQL"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "A cada 1 minuto": {
+      "main": [
+        [
+          {
+            "node": "Buscar Agendamentos Pendentes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Agendamentos Pendentes": {
+      "main": [
+        [
+          {
+            "node": "Tem Agendamentos?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tem Agendamentos?": {
+      "main": [
+        [
+          {
+            "node": "Atualizar Status Processing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Atualizar Status Processing": {
+      "main": [
+        [
+          {
+            "node": "Preparar Grupos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Grupos": {
+      "main": [
+        [
+          {
+            "node": "Loop por Grupo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop por Grupo": {
+      "main": [
+        [
+          {
+            "node": "Tem Midia?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Marcar Concluido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tem Midia?": {
+      "main": [
+        [
+          {
+            "node": "Enviar Midia",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Enviar Texto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar Texto": {
+      "main": [
+        [
+          {
+            "node": "Aguardar 2s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar Midia": {
+      "main": [
+        [
+          {
+            "node": "Aguardar 2s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aguardar 2s": {
+      "main": [
+        [
+          {
+            "node": "Loop por Grupo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "WhatsApp",
+      "createdAt": "2026-01-23T00:00:00.000Z",
+      "updatedAt": "2026-01-23T00:00:00.000Z"
+    },
+    {
+      "name": "Scheduled",
+      "createdAt": "2026-01-23T00:00:00.000Z",
+      "updatedAt": "2026-01-23T00:00:00.000Z"
+    }
+  ],
+  "triggerCount": 1
+}

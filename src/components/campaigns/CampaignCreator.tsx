@@ -34,7 +34,7 @@ export function CampaignCreator() {
 
   // Generated templates
   const [templates, setTemplates] = useState<TemplateVariation[]>([]);
-  const [selectedTemplate, setSelectedTemplate] = useState<number | null>(null);
+  const [selectedTemplates, setSelectedTemplates] = useState<number[]>([]);
 
   const handleInputChange = (field: keyof CampaignData, value: string) => {
     setCampaignData(prev => ({ ...prev, [field]: value }));
@@ -76,15 +76,29 @@ export function CampaignCreator() {
     }
   };
 
-  const handleSelectTemplate = (index: number) => {
-    setSelectedTemplate(index);
+  const handleToggleTemplate = (index: number) => {
+    setSelectedTemplates(prev => {
+      if (prev.includes(index)) {
+        return prev.filter(i => i !== index);
+      } else {
+        return [...prev, index];
+      }
+    });
+  };
+
+  const handleSelectAll = () => {
+    if (selectedTemplates.length === templates.length) {
+      setSelectedTemplates([]);
+    } else {
+      setSelectedTemplates(templates.map((_, i) => i));
+    }
   };
 
   const handleSaveCampaign = async () => {
-    if (selectedTemplate === null) {
+    if (selectedTemplates.length === 0) {
       toast({
-        title: "Selecione um template",
-        description: "Escolha um template antes de salvar",
+        title: "Selecione ao menos um template",
+        description: "Escolha um ou mais templates antes de salvar",
         variant: "destructive",
       });
       return;
@@ -93,17 +107,24 @@ export function CampaignCreator() {
     // TODO: Salvar no Supabase
     toast({
       title: "Campanha salva!",
-      description: "Campanha pronta para iniciar disparo",
+      description: `${selectedTemplates.length} template(s) selecionado(s) para disparo`,
     });
     setStep('review');
   };
 
   const handleStartDispatch = async () => {
-    if (selectedTemplate === null) return;
+    if (selectedTemplates.length === 0) return;
 
     setIsStartingDispatch(true);
     try {
-      const template = templates[selectedTemplate];
+      // Coletar todos os templates selecionados e mesclar suas variacoes
+      const selectedTemplatesList = selectedTemplates.map(i => templates[i]);
+
+      // Mesclar todas as variacoes de todos os templates selecionados
+      const mergedSaudacoes = [...new Set(selectedTemplatesList.flatMap(t => t.saudacoes))];
+      const mergedCorpo = [...new Set(selectedTemplatesList.flatMap(t => t.corpo))];
+      const mergedCta = [...new Set(selectedTemplatesList.flatMap(t => t.cta))];
+      const mergedOptout = [...new Set(selectedTemplatesList.flatMap(t => t.optout))];
 
       // Preparar dados para o workflow n8n
       const workflowInput = {
@@ -114,15 +135,23 @@ export function CampaignCreator() {
           link: campaignData.link,
           detalhes: campaignData.detalhes,
         },
-        template: {
-          id: template.id,
-          nome: template.nome,
-          tom: template.tom,
-          saudacoes: template.saudacoes,
-          corpo: template.corpo,
-          cta: template.cta,
-          optout: template.optout,
+        templates: selectedTemplatesList.map(t => ({
+          id: t.id,
+          nome: t.nome,
+          tom: t.tom,
+          saudacoes: t.saudacoes,
+          corpo: t.corpo,
+          cta: t.cta,
+          optout: t.optout,
+        })),
+        // Versao mesclada para facilitar uso no n8n
+        templateMesclado: {
+          saudacoes: mergedSaudacoes,
+          corpo: mergedCorpo,
+          cta: mergedCta,
+          optout: mergedOptout,
         },
+        totalVariacoes: mergedCorpo.length,
       };
 
       const response = await n8nAPI.executeWorkflow(DISPATCH_WORKFLOW_ID, workflowInput);
@@ -135,7 +164,7 @@ export function CampaignCreator() {
 
       toast({
         title: "Disparo iniciado!",
-        description: `Workflow executado com sucesso. ID: ${response.data?.id || 'N/A'}`,
+        description: `${selectedTemplates.length} template(s) com ${mergedCorpo.length} variacoes. ID: ${response.data?.id || 'N/A'}`,
       });
     } catch (error) {
       console.error('Error starting dispatch:', error);
@@ -309,9 +338,31 @@ export function CampaignCreator() {
             <Button variant="outline" onClick={() => setStep('config')}>
               Voltar
             </Button>
-            <Button variant="outline" onClick={handleGenerateTemplates} disabled={isGenerating}>
-              <RefreshCw className={`h-4 w-4 mr-2 ${isGenerating ? 'animate-spin' : ''}`} />
-              Regenerar
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={handleGenerateTemplates} disabled={isGenerating}>
+                <RefreshCw className={`h-4 w-4 mr-2 ${isGenerating ? 'animate-spin' : ''}`} />
+                Regenerar
+              </Button>
+            </div>
+          </div>
+
+          {/* Selection info bar */}
+          <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border">
+            <div className="flex items-center gap-3">
+              <Badge variant={selectedTemplates.length > 0 ? "default" : "secondary"}>
+                {selectedTemplates.length} selecionado(s)
+              </Badge>
+              <span className="text-sm text-muted-foreground">
+                Selecione multiplos templates para mais variacoes
+              </span>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleSelectAll}
+              className="text-sm"
+            >
+              {selectedTemplates.length === templates.length ? 'Desmarcar todos' : 'Selecionar todos'}
             </Button>
           </div>
 
@@ -320,8 +371,9 @@ export function CampaignCreator() {
               <TemplatePreview
                 key={template.id}
                 template={template}
-                isSelected={selectedTemplate === index}
-                onSelect={() => handleSelectTemplate(index)}
+                isSelected={selectedTemplates.includes(index)}
+                onSelect={() => handleToggleTemplate(index)}
+                multiSelect
               />
             ))}
           </div>
@@ -330,11 +382,11 @@ export function CampaignCreator() {
             <div className="flex justify-end">
               <Button
                 onClick={handleSaveCampaign}
-                disabled={selectedTemplate === null}
+                disabled={selectedTemplates.length === 0}
                 className="gap-2"
               >
                 <Save className="h-4 w-4" />
-                Salvar e Continuar
+                Salvar e Continuar ({selectedTemplates.length})
               </Button>
             </div>
           )}
@@ -342,7 +394,7 @@ export function CampaignCreator() {
       )}
 
       {/* Step 3: Review & Launch */}
-      {step === 'review' && selectedTemplate !== null && (
+      {step === 'review' && selectedTemplates.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle>Revisar e Iniciar Disparo</CardTitle>
@@ -369,29 +421,52 @@ export function CampaignCreator() {
                       <span>{campaignData.dataEvento}</span>
                     </div>
                   )}
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Template:</span>
-                    <Badge>{templates[selectedTemplate].tom}</Badge>
+                  <div className="flex justify-between items-start">
+                    <span className="text-muted-foreground">Templates:</span>
+                    <div className="flex flex-wrap gap-1 justify-end">
+                      {selectedTemplates.map(i => (
+                        <Badge key={i} variant="outline">{templates[i].tom}</Badge>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
 
               <div className="space-y-4">
-                <h3 className="font-medium">Configurações de Disparo</h3>
+                <h3 className="font-medium">Configuracoes de Disparo</h3>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Intervalo:</span>
-                    <span>120-300 segundos (aleatório)</span>
+                    <span>120-300 segundos (aleatorio)</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Variações:</span>
-                    <span>{templates[selectedTemplate].corpo.length} mensagens</span>
+                    <span className="text-muted-foreground">Templates:</span>
+                    <span>{selectedTemplates.length} selecionados</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Instância:</span>
+                    <span className="text-muted-foreground">Variacoes totais:</span>
+                    <span className="font-medium text-primary">
+                      {[...new Set(selectedTemplates.flatMap(i => templates[i].corpo))].length} mensagens
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Instancia:</span>
                     <span>3 CODIRECT - 5453</span>
                   </div>
                 </div>
+              </div>
+            </div>
+
+            {/* Preview das variacoes */}
+            <div className="space-y-3">
+              <h3 className="font-medium">Preview das Variacoes</h3>
+              <div className="max-h-48 overflow-y-auto space-y-2 p-3 bg-muted/30 rounded-lg border">
+                {[...new Set(selectedTemplates.flatMap(i => templates[i].corpo))].map((corpo, idx) => (
+                  <div key={idx} className="text-sm p-2 bg-background rounded border">
+                    <span className="text-xs text-muted-foreground">#{idx + 1}</span>
+                    <p className="mt-1">{corpo}</p>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -402,7 +477,7 @@ export function CampaignCreator() {
                   <span className="font-medium">Disparo em andamento</span>
                 </div>
                 <p className="text-sm text-muted-foreground mt-1">
-                  ID da execução: {dispatchExecutionId}
+                  ID da execucao: {dispatchExecutionId}
                 </p>
               </div>
             )}

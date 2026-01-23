@@ -1,7 +1,8 @@
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Play, Pause, Trash2, Eye, MoreVertical, Rocket } from "lucide-react";
+import { Play, Pause, Trash2, Eye, MoreVertical, Rocket, BarChart3 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -41,6 +42,8 @@ const mockCampaigns = [
 ];
 
 export function CampaignList() {
+  const navigate = useNavigate();
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'ativa':
@@ -84,12 +87,16 @@ export function CampaignList() {
   return (
     <div className="space-y-4">
       {mockCampaigns.map((campaign) => (
-        <Card key={campaign.id} className="hover:shadow-md transition-shadow">
+        <Card
+          key={campaign.id}
+          className="hover:shadow-md transition-shadow cursor-pointer group"
+          onClick={() => navigate(`/campaigns/${campaign.id}`)}
+        >
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-2">
-                  <h3 className="font-medium">{campaign.nome}</h3>
+                  <h3 className="font-medium group-hover:text-primary transition-colors">{campaign.nome}</h3>
                   <Badge variant="outline" className={getStatusColor(campaign.status)}>
                     {getStatusLabel(campaign.status)}
                   </Badge>
@@ -109,12 +116,12 @@ export function CampaignList() {
                     />
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {Math.round((campaign.enviados / campaign.total) * 100)}% concluído
+                    {Math.round((campaign.enviados / campaign.total) * 100)}% concluido
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 ml-4">
+              <div className="flex items-center gap-2 ml-4" onClick={(e) => e.stopPropagation()}>
                 {campaign.status === 'ativa' && (
                   <Button variant="outline" size="sm" className="gap-1">
                     <Pause className="h-3 w-3" />
@@ -128,6 +135,16 @@ export function CampaignList() {
                   </Button>
                 )}
 
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1"
+                  onClick={() => navigate(`/campaigns/${campaign.id}`)}
+                >
+                  <BarChart3 className="h-3 w-3" />
+                  Metricas
+                </Button>
+
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -135,7 +152,7 @@ export function CampaignList() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate(`/campaigns/${campaign.id}`)}>
                       <Eye className="h-4 w-4 mr-2" />
                       Ver detalhes
                     </DropdownMenuItem>

@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import DemoIndex from "./pages/DemoIndex";
 import Instances from "./pages/Instances";
 import Campaigns from "./pages/Campaigns";
+import CampaignDetails from "./pages/CampaignDetails";
 import Dispatch from "./pages/Dispatch";
 import Queue from "./pages/Queue";
 import Logs from "./pages/Logs";
@@ -30,6 +31,7 @@ const App = () => (
               <Route path="/demo" element={<DemoIndex />} />
               <Route path="/instances" element={<Instances />} />
               <Route path="/campaigns" element={<Campaigns />} />
+              <Route path="/campaigns/:id" element={<CampaignDetails />} />
               <Route path="/dispatch" element={<Dispatch />} />
               <Route path="/queue" element={<Queue />} />
               <Route path="/logs" element={<Logs />} />

@@ -2,8 +2,10 @@ import { useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { CampaignCreator } from "@/components/campaigns/CampaignCreator";
 import { CampaignList } from "@/components/campaigns/CampaignList";
+import { GlobalCampaignStats } from "@/components/campaigns/GlobalCampaignStats";
+import { ContactsRanking } from "@/components/campaigns/ContactsRanking";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PlusCircle, List, Rocket } from "lucide-react";
+import { PlusCircle, List, Rocket, BarChart3 } from "lucide-react";
 
 const Campaigns = () => {
   const [activeTab, setActiveTab] = useState("create");
@@ -26,7 +28,7 @@ const Campaigns = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsList className="grid w-full max-w-lg grid-cols-3">
             <TabsTrigger value="create" className="flex items-center gap-2">
               <PlusCircle className="h-4 w-4" />
               Nova Campanha
@@ -34,6 +36,10 @@ const Campaigns = () => {
             <TabsTrigger value="list" className="flex items-center gap-2">
               <List className="h-4 w-4" />
               Campanhas
+            </TabsTrigger>
+            <TabsTrigger value="metrics" className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Metricas
             </TabsTrigger>
           </TabsList>
 
@@ -43,6 +49,11 @@ const Campaigns = () => {
 
           <TabsContent value="list" className="mt-6">
             <CampaignList />
+          </TabsContent>
+
+          <TabsContent value="metrics" className="mt-6 space-y-6">
+            <GlobalCampaignStats />
+            <ContactsRanking />
           </TabsContent>
         </Tabs>
       </div>
