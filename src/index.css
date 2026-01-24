@@ -6,7 +6,7 @@
 
 @layer base {
   :root {
-    --background: 240 10% 98%;
+    --background: 240 10% 96%;
     --foreground: 240 10% 15%;
 
     --card: 0 0% 100%;
@@ -53,10 +53,10 @@
   }
 
   .dark {
-    --background: 240 10% 3.5%;
+    --background: 240 10% 2.5%;
     --foreground: 240 10% 95%;
 
-    --card: 240 10% 4%;
+    --card: 240 10% 5%;
     --card-foreground: 240 10% 95%;
 
     --popover: 240 10% 4%;
@@ -115,7 +115,7 @@
   }
 
   .gradient-card {
-    @apply bg-gradient-to-br from-card to-muted/30;
+    @apply bg-gradient-to-br from-card to-muted/50;
   }
 
   .gradient-accent {
