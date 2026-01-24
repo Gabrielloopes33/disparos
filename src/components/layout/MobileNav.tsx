@@ -11,6 +11,7 @@ import {
   Zap,
   Activity,
   X,
+  Rocket,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,11 @@ const navItems = [
     icon: Smartphone,
     label: "Instâncias",
     path: "/instances",
+  },
+  {
+    icon: Rocket,
+    label: "Campanhas",
+    path: "/campaigns",
   },
   {
     icon: Send,
@@ -96,12 +102,12 @@ export function MobileNav() {
               >
                 <Button
                   variant="ghost"
-                  className={cn(
-                    "w-full justify-start gap-3 h-12 px-4 rounded-xl",
-                    isActive
-                      ? "bg-gradient-to-r from-primary/20 to-accent/20 text-primary font-medium border border-primary/20"
-                      : "hover:bg-muted/50"
-                  )}
+className={cn(
+                     "w-full justify-start gap-3 h-12 px-4 rounded-xl",
+                     isActive
+                       ? "bg-gradient-to-r from-primary/20 to-accent/20 text-primary font-medium border border-primary/20"
+                       : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                   )}
                 >
                   <NavIcon className="h-5 w-5" />
                   <span>{item.label}</span>

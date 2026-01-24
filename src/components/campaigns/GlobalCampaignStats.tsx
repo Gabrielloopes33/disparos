@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { format, subDays, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Calendar } from "@/components/ui/calendar";
@@ -21,41 +21,15 @@ import {
   CalendarIcon,
   TrendingUp,
   Zap,
+  AlertCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DateRange } from "react-day-picker";
-
-interface GlobalMetrics {
-  totalSent: number;
-  delivered: number;
-  read: number;
-  positiveInteractions: number;
-  optOuts: number;
-  linkClicks: number;
-  totalCampaigns: number;
-}
+import { useGlobalMetrics } from "@/hooks/useCampaigns";
 
 interface GlobalCampaignStatsProps {
   loading?: boolean;
 }
-
-// Mock data - TODO: Buscar do Supabase com filtro de data
-const getMockMetrics = (dateRange: DateRange | undefined): GlobalMetrics => {
-  // Simular variação baseada no período
-  const multiplier = dateRange?.from && dateRange?.to
-    ? Math.ceil((dateRange.to.getTime() - dateRange.from.getTime()) / (1000 * 60 * 60 * 24 * 7))
-    : 4;
-
-  return {
-    totalSent: 12500 * multiplier,
-    delivered: 12125 * multiplier,
-    read: 8750 * multiplier,
-    positiveInteractions: 2100 * multiplier,
-    optOuts: 187 * multiplier,
-    linkClicks: 3420 * multiplier,
-    totalCampaigns: 15 + multiplier,
-  };
-};
 
 const PRESET_RANGES = [
   { label: "Hoje", value: "today", getDates: () => ({ from: new Date(), to: new Date() }) },
@@ -125,29 +99,51 @@ function MetricCard({ title, value, subtitle, icon: Icon, variant = "default" }:
   );
 }
 
-export function GlobalCampaignStats({ loading = false }: GlobalCampaignStatsProps) {
+export function GlobalCampaignStats({ loading: externalLoading = false }: GlobalCampaignStatsProps) {
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: subDays(new Date(), 30),
     to: new Date(),
   });
   const [presetValue, setPresetValue] = useState("30d");
 
-  const metrics = getMockMetrics(dateRange);
+  // Format dates for API call
+  const startDate = useMemo(() =>
+    dateRange?.from ? format(dateRange.from, "yyyy-MM-dd") : undefined,
+    [dateRange?.from]
+  );
+  const endDate = useMemo(() =>
+    dateRange?.to ? format(dateRange.to, "yyyy-MM-dd") : undefined,
+    [dateRange?.to]
+  );
 
-  const deliveryRate = metrics.totalSent > 0
-    ? ((metrics.delivered / metrics.totalSent) * 100).toFixed(1)
+  const { data: metrics, isLoading } = useGlobalMetrics(startDate, endDate);
+  const loading = externalLoading || isLoading;
+
+  // Default metrics when loading or no data
+  const safeMetrics = metrics || {
+    totalCampaigns: 0,
+    totalSent: 0,
+    delivered: 0,
+    read: 0,
+    positiveInteractions: 0,
+    optOuts: 0,
+    linkClicks: 0,
+  };
+
+  const deliveryRate = safeMetrics.totalSent > 0
+    ? ((safeMetrics.delivered / safeMetrics.totalSent) * 100).toFixed(1)
     : "0.0";
 
-  const readRate = metrics.delivered > 0
-    ? ((metrics.read / metrics.delivered) * 100).toFixed(1)
+  const readRate = safeMetrics.delivered > 0
+    ? ((safeMetrics.read / safeMetrics.delivered) * 100).toFixed(1)
     : "0.0";
 
-  const interactionRate = metrics.read > 0
-    ? ((metrics.positiveInteractions / metrics.read) * 100).toFixed(1)
+  const interactionRate = safeMetrics.read > 0
+    ? ((safeMetrics.positiveInteractions / safeMetrics.read) * 100).toFixed(1)
     : "0.0";
 
-  const optOutRate = metrics.totalSent > 0
-    ? ((metrics.optOuts / metrics.totalSent) * 100).toFixed(2)
+  const optOutRate = safeMetrics.totalSent > 0
+    ? ((safeMetrics.optOuts / safeMetrics.totalSent) * 100).toFixed(2)
     : "0.00";
 
   const handlePresetChange = (value: string) => {
@@ -237,7 +233,7 @@ export function GlobalCampaignStats({ loading = false }: GlobalCampaignStatsProp
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
           <Zap className="h-4 w-4 text-primary" />
           <span className="text-sm font-medium">
-            {metrics.totalCampaigns} campanhas no periodo
+            {safeMetrics.totalCampaigns} campanhas no periodo
           </span>
         </div>
       </div>
@@ -246,14 +242,14 @@ export function GlobalCampaignStats({ loading = false }: GlobalCampaignStatsProp
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <MetricCard
           title="Total Enviados"
-          value={metrics.totalSent}
+          value={safeMetrics.totalSent}
           icon={Send}
           variant="default"
         />
 
         <MetricCard
           title="Entregues"
-          value={metrics.delivered}
+          value={safeMetrics.delivered}
           subtitle={`${deliveryRate}% taxa de entrega`}
           icon={CheckCheck}
           variant="success"
@@ -261,7 +257,7 @@ export function GlobalCampaignStats({ loading = false }: GlobalCampaignStatsProp
 
         <MetricCard
           title="Lidos"
-          value={metrics.read}
+          value={safeMetrics.read}
           subtitle={`${readRate}% taxa de leitura`}
           icon={Eye}
           variant="info"
@@ -269,7 +265,7 @@ export function GlobalCampaignStats({ loading = false }: GlobalCampaignStatsProp
 
         <MetricCard
           title="Interacoes"
-          value={metrics.positiveInteractions}
+          value={safeMetrics.positiveInteractions}
           subtitle={`${interactionRate}% taxa`}
           icon={MessageCircle}
           variant="success"
@@ -277,14 +273,14 @@ export function GlobalCampaignStats({ loading = false }: GlobalCampaignStatsProp
 
         <MetricCard
           title="Cliques em Links"
-          value={metrics.linkClicks}
+          value={safeMetrics.linkClicks}
           icon={Link2}
           variant="warning"
         />
 
         <MetricCard
           title="Opt-outs"
-          value={metrics.optOuts}
+          value={safeMetrics.optOuts}
           subtitle={`${optOutRate}% do total`}
           icon={UserX}
           variant="destructive"

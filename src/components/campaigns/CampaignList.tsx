@@ -1,48 +1,23 @@
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Play, Pause, Trash2, Eye, MoreVertical, Rocket, BarChart3 } from "lucide-react";
+import { Play, Pause, Trash2, Eye, MoreVertical, Rocket, BarChart3, Loader2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
-// TODO: Buscar campanhas do Supabase
-const mockCampaigns = [
-  {
-    id: '1',
-    nome: 'Live Marketing 2026',
-    tema: 'Live de Marketing Digital',
-    status: 'ativa',
-    enviados: 156,
-    total: 500,
-    criadaEm: '2026-01-20',
-  },
-  {
-    id: '2',
-    nome: 'Reativação Q1',
-    tema: 'Reativação de leads frios',
-    status: 'pausada',
-    enviados: 89,
-    total: 300,
-    criadaEm: '2026-01-18',
-  },
-  {
-    id: '3',
-    nome: 'Lançamento Produto X',
-    tema: 'Pré-venda exclusiva',
-    status: 'finalizada',
-    enviados: 1200,
-    total: 1200,
-    criadaEm: '2026-01-15',
-  },
-];
+import { useCampaigns, useDeleteCampaign, useUpdateCampaign } from "@/hooks/useCampaigns";
 
 export function CampaignList() {
   const navigate = useNavigate();
+  const { data: campaignsData, isLoading } = useCampaigns();
+  const deleteCampaign = useDeleteCampaign();
+  const updateCampaign = useUpdateCampaign();
+
+  const campaigns = campaignsData?.data || [];
 
   const getStatusColor = (status: string) => {
     switch (status) {

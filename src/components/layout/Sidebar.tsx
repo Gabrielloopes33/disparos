@@ -103,12 +103,12 @@ export function Sidebar() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className={cn(
-                      "w-full h-12 mb-2 rounded-xl hover-lift",
-                      isActive 
-                        ? "bg-gradient-to-r from-primary/20 to-accent/20 text-primary border border-primary/20" 
-                        : "hover:bg-muted/50"
-                    )}
+className={cn(
+                       "w-full h-12 mb-2 rounded-xl hover-lift",
+                       isActive 
+                         ? "bg-gradient-to-r from-primary/20 to-accent/20 text-primary border border-primary/20" 
+                         : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                     )}
                   >
                     <NavIcon className="h-5 w-5" />
                     {item.badge && (
@@ -132,12 +132,12 @@ export function Sidebar() {
             <Link key={item.path} to={item.path}>
               <Button
                 variant="ghost"
-                className={cn(
-                  "w-full justify-start gap-3 h-12 px-4 rounded-xl hover-lift group",
-                  isActive 
-                    ? "bg-gradient-to-r from-primary/20 to-accent/20 text-primary font-medium border border-primary/20 shadow-md" 
-                    : "hover:bg-muted/50"
-                )}
+className={cn(
+                   "w-full justify-start gap-3 h-12 px-4 rounded-xl hover-lift group",
+                   isActive 
+                     ? "bg-gradient-to-r from-primary/20 to-accent/20 text-primary font-medium border border-primary/20 shadow-md" 
+                     : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                 )}
               >
                 <div className="relative">
                   <NavIcon className="h-5 w-5 group-hover:scale-110 transition-transform" />
