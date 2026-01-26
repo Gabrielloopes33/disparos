@@ -23,13 +23,15 @@ async function supabaseRequest<T>(
       }),
     });
 
+    const rawText = await response.text();
+    const parsed = rawText ? JSON.parse(rawText) : {};
+
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-      return { data: null, error: new Error(errorData.error || `HTTP error! status: ${response.status}`) };
+      const errorMessage = parsed?.error || `HTTP error! status: ${response.status}`;
+      return { data: null, error: new Error(errorMessage) };
     }
 
-    const result = await response.json();
-    return { data: result.data, error: null, count: result.count };
+    return { data: parsed.data ?? null, error: null, count: parsed.count };
   } catch (error) {
     console.error('Supabase request error:', error);
     return { data: null, error: error as Error };
