@@ -18,7 +18,7 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    const { endpoint, method = 'GET', body } = JSON.parse(event.body || '{}');
+    const { endpoint, method = 'GET', body, headers: clientHeaders } = JSON.parse(event.body || '{}');
 
     // Get environment variables (secure, server-side only)
     const SUPABASE_URL = process.env.SUPABASE_URL || 'https://supabase.codirect.com.br';
@@ -36,17 +36,22 @@ exports.handler = async (event, context) => {
     const url = `${SUPABASE_URL}/rest/v1${endpoint}`;
 
     // Prepare request options
+    const preferHeader = clientHeaders?.Prefer || clientHeaders?.prefer;
+    const preferValue = preferHeader
+      ? (preferHeader.includes('count=exact') ? preferHeader : `${preferHeader},count=exact`)
+      : 'count=exact';
+
     const requestOptions = {
       method,
       headers: {
         'Content-Type': 'application/json',
         'apikey': SUPABASE_ANON_KEY,
         'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-        'Prefer': 'count=exact',
+        'Prefer': preferValue,
       },
     };
 
-    if (body && (method === 'POST' || method === 'PUT')) {
+    if (body && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
       requestOptions.body = JSON.stringify(body);
     }
 

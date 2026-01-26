@@ -11,6 +11,7 @@ import { Loader2, Sparkles, Eye, Save, Play, RefreshCw, Copy, Check, Square } fr
 import { geminiService, type CampaignData, type TemplateVariation } from "@/services/gemini";
 import { n8nAPI } from "@/services/n8n";
 import { useToast } from "@/hooks/use-toast";
+import { useCreateCampaign, useUpdateCampaign } from "@/hooks/useCampaigns";
 import { TemplatePreview } from "./TemplatePreview";
 
 // ID do workflow de disparo no n8n (pode ser configurado nas settings futuramente)
@@ -22,6 +23,10 @@ export function CampaignCreator() {
   const [isStartingDispatch, setIsStartingDispatch] = useState(false);
   const [dispatchExecutionId, setDispatchExecutionId] = useState<string | null>(null);
   const [step, setStep] = useState<'config' | 'templates' | 'review'>('config');
+  const [campaignId, setCampaignId] = useState<string | null>(null);
+  const [campaignName, setCampaignName] = useState<string | null>(null);
+  const createCampaign = useCreateCampaign();
+  const updateCampaign = useUpdateCampaign();
 
   // Form state
   const [campaignData, setCampaignData] = useState<CampaignData>({
@@ -94,6 +99,15 @@ export function CampaignCreator() {
     }
   };
 
+  const buildMessagePreview = (template: TemplateVariation) => {
+    const saudacao = template.saudacoes[0] || '';
+    const corpo = template.corpo[0] || '';
+    const cta = template.cta[0] || '';
+    const optout = template.optout[0] || '';
+
+    return [saudacao, corpo, cta, optout].filter(Boolean).join('\n\n');
+  };
+
   const handleSaveCampaign = async () => {
     if (selectedTemplates.length === 0) {
       toast({
@@ -104,16 +118,65 @@ export function CampaignCreator() {
       return;
     }
 
-    // TODO: Salvar no Supabase
-    toast({
-      title: "Campanha salva!",
-      description: `${selectedTemplates.length} template(s) selecionado(s) para disparo`,
-    });
-    setStep('review');
+    const selectedTemplatesList = selectedTemplates.map(i => templates[i]);
+    const name = campaignData.tema || `Campanha ${new Date().toLocaleDateString('pt-BR')}`;
+    const messagePreview = buildMessagePreview(selectedTemplatesList[0]);
+
+    try {
+      if (campaignId) {
+        await updateCampaign.mutateAsync({
+          id: campaignId,
+          updates: {
+            name,
+            tema: campaignData.tema,
+            objetivo: campaignData.objetivo,
+            data_evento: campaignData.dataEvento,
+            link: campaignData.link,
+            detalhes: campaignData.detalhes,
+            message_template: messagePreview,
+            templates_json: selectedTemplatesList,
+          },
+        });
+      } else {
+        const created = await createCampaign.mutateAsync({
+          name,
+          tema: campaignData.tema,
+          objetivo: campaignData.objetivo,
+          data_evento: campaignData.dataEvento,
+          link: campaignData.link,
+          detalhes: campaignData.detalhes,
+          message_template: messagePreview,
+          templates_json: selectedTemplatesList,
+        });
+        setCampaignId(created.id);
+        setCampaignName(created.name);
+      }
+
+      toast({
+        title: "Campanha salva!",
+        description: `${selectedTemplates.length} template(s) selecionado(s) para disparo`,
+      });
+      setStep('review');
+    } catch (error) {
+      console.error('Error saving campaign:', error);
+      toast({
+        title: "Erro ao salvar campanha",
+        description: "Nao foi possivel salvar no Supabase",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleStartDispatch = async () => {
     if (selectedTemplates.length === 0) return;
+    if (!campaignId) {
+      toast({
+        title: "Campanha nao salva",
+        description: "Salve a campanha antes de iniciar o disparo",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setIsStartingDispatch(true);
     try {
@@ -128,7 +191,11 @@ export function CampaignCreator() {
 
       // Preparar dados para o workflow n8n
       const workflowInput = {
+        campaignId,
+        campaignName: campaignName || campaignData.tema,
         campanha: {
+          id: campaignId,
+          name: campaignName || campaignData.tema,
           tema: campaignData.tema,
           objetivo: campaignData.objetivo,
           dataEvento: campaignData.dataEvento,
@@ -161,6 +228,16 @@ export function CampaignCreator() {
       }
 
       setDispatchExecutionId(response.data?.id || null);
+      if (campaignId) {
+        await updateCampaign.mutateAsync({
+          id: campaignId,
+          updates: {
+            status: 'active',
+            started_at: new Date().toISOString(),
+            workflow_execution_id: response.data?.id || null,
+          },
+        });
+      }
 
       toast({
         title: "Disparo iniciado!",
@@ -193,6 +270,12 @@ export function CampaignCreator() {
         description: "O workflow foi parado com sucesso",
       });
       setDispatchExecutionId(null);
+      if (campaignId) {
+        await updateCampaign.mutateAsync({
+          id: campaignId,
+          updates: { status: 'paused' },
+        });
+      }
     } catch (error) {
       console.error('Error stopping dispatch:', error);
       toast({
@@ -382,10 +465,14 @@ export function CampaignCreator() {
             <div className="flex justify-end">
               <Button
                 onClick={handleSaveCampaign}
-                disabled={selectedTemplates.length === 0}
+                disabled={selectedTemplates.length === 0 || createCampaign.isPending || updateCampaign.isPending}
                 className="gap-2"
               >
-                <Save className="h-4 w-4" />
+                {createCampaign.isPending || updateCampaign.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
                 Salvar e Continuar ({selectedTemplates.length})
               </Button>
             </div>

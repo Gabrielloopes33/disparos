@@ -6,6 +6,10 @@ async function supabaseRequest<T>(
   options: RequestInit = {}
 ): Promise<{ data: T | null; error: Error | null; count?: number }> {
   try {
+    const clientHeaders =
+      options.headers && !(options.headers instanceof Headers)
+        ? options.headers
+        : undefined;
     const response = await fetch(SUPABASE_PROXY_URL, {
       method: 'POST',
       headers: {
@@ -15,6 +19,7 @@ async function supabaseRequest<T>(
         endpoint,
         method: options.method || 'GET',
         body: options.body ? JSON.parse(options.body as string) : undefined,
+        headers: clientHeaders,
       }),
     });
 
