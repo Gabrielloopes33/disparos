@@ -28,7 +28,10 @@ async function supabaseRequest<T>(
 
     if (!response.ok) {
       const errorMessage = parsed?.error || `HTTP error! status: ${response.status}`;
-      return { data: null, error: new Error(errorMessage) };
+      const hint = parsed?.hint ? ` (${parsed.hint})` : '';
+      const details = parsed?.details ? ` - ${JSON.stringify(parsed.details)}` : '';
+      console.error('Supabase error details:', parsed);
+      return { data: null, error: new Error(errorMessage + hint + details) };
     }
 
     return { data: parsed.data ?? null, error: null, count: parsed.count };

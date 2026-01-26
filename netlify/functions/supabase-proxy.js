@@ -69,6 +69,20 @@ exports.handler = async (event, context) => {
     // Get count from headers if available
     const count = response.headers.get('content-range')?.split('/')[1];
 
+    // Se o Supabase retornou erro, repassar a mensagem
+    if (!response.ok) {
+      console.error('Supabase error:', response.status, data);
+      return {
+        statusCode: response.status,
+        headers,
+        body: JSON.stringify({
+          error: data?.message || data?.error || `Supabase error: ${response.status}`,
+          details: data,
+          hint: data?.hint,
+        }),
+      };
+    }
+
     return {
       statusCode: response.status,
       headers,
@@ -83,7 +97,10 @@ exports.handler = async (event, context) => {
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ error: 'Internal server error' }),
+      body: JSON.stringify({
+        error: 'Internal server error',
+        details: error.message || String(error)
+      }),
     };
   }
 };
