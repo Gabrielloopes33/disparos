@@ -21,12 +21,16 @@ export function CampaignList() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'ativa':
+      case 'active':
         return 'bg-green-500/10 text-green-500 border-green-500/20';
-      case 'pausada':
+      case 'paused':
         return 'bg-amber-500/10 text-amber-500 border-amber-500/20';
-      case 'finalizada':
+      case 'completed':
         return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
+      case 'draft':
+        return 'bg-slate-500/10 text-slate-500 border-slate-500/20';
+      case 'cancelled':
+        return 'bg-red-500/10 text-red-500 border-red-500/20';
       default:
         return 'bg-muted text-muted-foreground';
     }
@@ -34,18 +38,47 @@ export function CampaignList() {
 
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case 'ativa':
+      case 'active':
         return 'Em andamento';
-      case 'pausada':
+      case 'paused':
         return 'Pausada';
-      case 'finalizada':
+      case 'completed':
         return 'Finalizada';
+      case 'draft':
+        return 'Rascunho';
+      case 'cancelled':
+        return 'Cancelada';
       default:
         return status;
     }
   };
 
-  if (mockCampaigns.length === 0) {
+  const handlePause = (id: string) => {
+    updateCampaign.mutate({ id, updates: { status: 'paused' } });
+  };
+
+  const handleResume = (id: string) => {
+    updateCampaign.mutate({ id, updates: { status: 'active' } });
+  };
+
+  const handleDelete = (id: string) => {
+    if (confirm('Tem certeza que deseja excluir esta campanha?')) {
+      deleteCampaign.mutate(id);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="flex flex-col items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+          <p className="text-muted-foreground">Carregando campanhas...</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (campaigns.length === 0) {
     return (
       <Card>
         <CardContent className="flex flex-col items-center justify-center py-12">
@@ -61,87 +94,108 @@ export function CampaignList() {
 
   return (
     <div className="space-y-4">
-      {mockCampaigns.map((campaign) => (
-        <Card
-          key={campaign.id}
-          className="hover:shadow-md transition-shadow cursor-pointer group"
-          onClick={() => navigate(`/campaigns/${campaign.id}`)}
-        >
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
-                  <h3 className="font-medium group-hover:text-primary transition-colors">{campaign.nome}</h3>
-                  <Badge variant="outline" className={getStatusColor(campaign.status)}>
-                    {getStatusLabel(campaign.status)}
-                  </Badge>
+      {campaigns.map((campaign) => {
+        const total = campaign.total_sent || 1;
+        const delivered = campaign.delivered_count || 0;
+        const progress = total > 0 ? (delivered / total) * 100 : 0;
+
+        return (
+          <Card
+            key={campaign.id}
+            className="hover:shadow-md transition-shadow cursor-pointer group"
+            onClick={() => navigate(`/campaigns/${campaign.id}`)}
+          >
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-2">
+                    <h3 className="font-medium group-hover:text-primary transition-colors">{campaign.name}</h3>
+                    <Badge variant="outline" className={getStatusColor(campaign.status)}>
+                      {getStatusLabel(campaign.status)}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-3">{campaign.tema || campaign.objetivo || 'Sem descricao'}</p>
+
+                  {/* Progress bar */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>{delivered.toLocaleString('pt-BR')} entregues</span>
+                      <span>{total.toLocaleString('pt-BR')} enviados</span>
+                    </div>
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-primary transition-all"
+                        style={{ width: `${Math.min(progress, 100)}%` }}
+                      />
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {Math.round(progress)}% entregues
+                    </div>
+                  </div>
                 </div>
-                <p className="text-sm text-muted-foreground mb-3">{campaign.tema}</p>
 
-                {/* Progress bar */}
-                <div className="space-y-1">
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>{campaign.enviados} enviados</span>
-                    <span>{campaign.total} total</span>
-                  </div>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-primary transition-all"
-                      style={{ width: `${(campaign.enviados / campaign.total) * 100}%` }}
-                    />
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {Math.round((campaign.enviados / campaign.total) * 100)}% concluido
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 ml-4" onClick={(e) => e.stopPropagation()}>
-                {campaign.status === 'ativa' && (
-                  <Button variant="outline" size="sm" className="gap-1">
-                    <Pause className="h-3 w-3" />
-                    Pausar
-                  </Button>
-                )}
-                {campaign.status === 'pausada' && (
-                  <Button variant="outline" size="sm" className="gap-1 text-green-600 border-green-600 hover:bg-green-50">
-                    <Play className="h-3 w-3" />
-                    Retomar
-                  </Button>
-                )}
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-1"
-                  onClick={() => navigate(`/campaigns/${campaign.id}`)}
-                >
-                  <BarChart3 className="h-3 w-3" />
-                  Metricas
-                </Button>
-
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <MoreVertical className="h-4 w-4" />
+                <div className="flex items-center gap-2 ml-4" onClick={(e) => e.stopPropagation()}>
+                  {campaign.status === 'active' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1"
+                      onClick={() => handlePause(campaign.id)}
+                      disabled={updateCampaign.isPending}
+                    >
+                      <Pause className="h-3 w-3" />
+                      Pausar
                     </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => navigate(`/campaigns/${campaign.id}`)}>
-                      <Eye className="h-4 w-4 mr-2" />
-                      Ver detalhes
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="text-destructive">
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Excluir
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                  )}
+                  {campaign.status === 'paused' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1 text-green-600 border-green-600 hover:bg-green-50"
+                      onClick={() => handleResume(campaign.id)}
+                      disabled={updateCampaign.isPending}
+                    >
+                      <Play className="h-3 w-3" />
+                      Retomar
+                    </Button>
+                  )}
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1"
+                    onClick={() => navigate(`/campaigns/${campaign.id}`)}
+                  >
+                    <BarChart3 className="h-3 w-3" />
+                    Metricas
+                  </Button>
+
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => navigate(`/campaigns/${campaign.id}`)}>
+                        <Eye className="h-4 w-4 mr-2" />
+                        Ver detalhes
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="text-destructive"
+                        onClick={() => handleDelete(campaign.id)}
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Excluir
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+            </CardContent>
+          </Card>
+        );
+      })}
     </div>
   );
 }
