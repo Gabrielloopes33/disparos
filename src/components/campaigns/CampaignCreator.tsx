@@ -14,8 +14,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useCreateCampaign, useUpdateCampaign } from "@/hooks/useCampaigns";
 import { TemplatePreview } from "./TemplatePreview";
 
-// ID do workflow de disparo no n8n (pode ser configurado nas settings futuramente)
-const DISPATCH_WORKFLOW_ID = "vHh6iey3Cc5imWx9";
+// Webhook do n8n para iniciar o disparo
+const DISPATCH_WEBHOOK_URL = "https://n8n.codirect.com.br/webhook/deb23aec-5d70-448f-99d9-cb0c2c911868-campaign-dispatch";
 
 export function CampaignCreator() {
   const { toast } = useToast();
@@ -221,13 +221,22 @@ export function CampaignCreator() {
         totalVariacoes: mergedCorpo.length,
       };
 
-      const response = await n8nAPI.executeWorkflow(DISPATCH_WORKFLOW_ID, workflowInput);
+      const response = await fetch(DISPATCH_WEBHOOK_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(workflowInput),
+      });
 
-      if (response.error) {
-        throw new Error(response.error.message);
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => null);
+        const message = errorBody?.error || `HTTP error! status: ${response.status}`;
+        throw new Error(message);
       }
 
-      setDispatchExecutionId(response.data?.id || null);
+      const responseData = await response.json().catch(() => ({}));
+      setDispatchExecutionId(responseData.executionId || responseData.id || null);
       if (campaignId) {
         await updateCampaign.mutateAsync({
           id: campaignId,
@@ -241,7 +250,7 @@ export function CampaignCreator() {
 
       toast({
         title: "Disparo iniciado!",
-        description: `${selectedTemplates.length} template(s) com ${mergedCorpo.length} variacoes. ID: ${response.data?.id || 'N/A'}`,
+        description: `${selectedTemplates.length} template(s) com ${mergedCorpo.length} variacoes. Webhook acionado.`,
       });
     } catch (error) {
       console.error('Error starting dispatch:', error);
