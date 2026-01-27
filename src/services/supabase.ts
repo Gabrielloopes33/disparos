@@ -514,13 +514,15 @@ export interface ContactRanking {
 export const metricsService = {
   // Get global metrics (all campaigns)
   async getGlobalMetrics(startDate?: string, endDate?: string): Promise<GlobalMetrics> {
-    let query = `/import_clint_jafoi?select=delivery_status,interaction_type`;
+    // First, get total count without date filter (for existing records without sent_at)
+    let query = `/import_clint_jafoi?select=id,delivery_status,interaction_type,campaign_id,sent_at,created_at`;
 
-    if (startDate) {
-      query += `&sent_at=gte.${startDate}`;
-    }
-    if (endDate) {
-      query += `&sent_at=lte.${endDate}`;
+    // Use created_at as fallback for date filtering since sent_at might be null
+    if (startDate && endDate) {
+      // Use OR to include records where sent_at matches OR (sent_at is null AND created_at matches)
+      query += `&or=(sent_at.gte.${startDate},and(sent_at.is.null,created_at.gte.${startDate}))`;
+    } else if (startDate) {
+      query += `&or=(sent_at.gte.${startDate},and(sent_at.is.null,created_at.gte.${startDate}))`;
     }
 
     const { data, error } = await supabaseRequest<SentLeadExtended[]>(query);
@@ -529,16 +531,28 @@ export const metricsService = {
 
     const leads = data || [];
 
-    // Calculate metrics
+    // Filter by end date in JS (since complex OR queries are tricky)
+    let filteredLeads = leads;
+    if (endDate) {
+      const endDateTime = new Date(endDate + 'T23:59:59').getTime();
+      filteredLeads = leads.filter(l => {
+        const dateToCheck = l.sent_at || l.created_at;
+        if (!dateToCheck) return true; // Include if no date
+        return new Date(dateToCheck).getTime() <= endDateTime;
+      });
+    }
+
+    // Calculate metrics - count all records as "sent"
+    // Records without delivery_status are considered "sent but not yet delivered"
     const metrics: GlobalMetrics = {
-      totalSent: leads.length,
-      delivered: leads.filter(l => l.delivery_status === 'delivered' || l.delivery_status === 'read').length,
-      read: leads.filter(l => l.delivery_status === 'read').length,
-      positiveInteractions: leads.filter(l => l.interaction_type === 'positive_reply').length,
-      optOuts: leads.filter(l => l.interaction_type === 'opt-out').length,
-      linkClicks: leads.filter(l => l.interaction_type === 'click').length,
-      failed: leads.filter(l => l.delivery_status === 'failed').length,
-      totalCampaigns: new Set(leads.map(l => l.campaign_id).filter(Boolean)).size || 1,
+      totalSent: filteredLeads.length,
+      delivered: filteredLeads.filter(l => l.delivery_status === 'delivered' || l.delivery_status === 'read').length,
+      read: filteredLeads.filter(l => l.delivery_status === 'read').length,
+      positiveInteractions: filteredLeads.filter(l => l.interaction_type === 'positive_reply').length,
+      optOuts: filteredLeads.filter(l => l.interaction_type === 'opt-out').length,
+      linkClicks: filteredLeads.filter(l => l.interaction_type === 'click').length,
+      failed: filteredLeads.filter(l => l.delivery_status === 'failed').length,
+      totalCampaigns: new Set(filteredLeads.map(l => l.campaign_id).filter(Boolean)).size || 1,
     };
 
     return metrics;
@@ -572,10 +586,11 @@ export const metricsService = {
     limit = 100,
     offset = 0
   ): Promise<{ data: SentLeadExtended[]; count: number }> {
-    let query = `/import_clint_jafoi?select=*&order=sent_at.desc&offset=${offset}&limit=${limit}`;
+    // Use created_at as fallback for ordering since sent_at might be null
+    let query = `/import_clint_jafoi?select=*&order=created_at.desc&offset=${offset}&limit=${limit}`;
 
     if (campaignId) {
-      query = `/import_clint_jafoi?select=*&campaign_id=eq.${encodeURIComponent(campaignId)}&order=sent_at.desc&offset=${offset}&limit=${limit}`;
+      query = `/import_clint_jafoi?select=*&campaign_id=eq.${encodeURIComponent(campaignId)}&order=created_at.desc&offset=${offset}&limit=${limit}`;
     }
 
     const { data, error, count } = await supabaseRequest<SentLeadExtended[]>(query);
@@ -588,7 +603,7 @@ export const metricsService = {
   async getTopEngagedContacts(limit = 10): Promise<ContactRanking[]> {
     // Get all sent leads and aggregate by phone
     const { data, error } = await supabaseRequest<SentLeadExtended[]>(
-      `/import_clint_jafoi?select=complete_phone,name,delivery_status,interaction_type,"ULTIMA MENSAGEM ENVIADA",sent_at&order=sent_at.desc`
+      `/import_clint_jafoi?select=complete_phone,name,delivery_status,interaction_type,"ULTIMA MENSAGEM ENVIADA",sent_at,created_at&order=created_at.desc`
     );
 
     if (error) throw error;
@@ -621,7 +636,7 @@ export const metricsService = {
       // Keep first (most recent due to order)
       if (!existing.last_message_sent) {
         existing.last_message_sent = lead["ULTIMA MENSAGEM ENVIADA"];
-        existing.last_sent_at = lead.sent_at;
+        existing.last_sent_at = lead.sent_at || lead.created_at;
       }
 
       contactMap.set(phone, existing);
@@ -642,7 +657,7 @@ export const metricsService = {
   // Get opt-out contacts
   async getOptOutContacts(limit = 20): Promise<SentLeadExtended[]> {
     const { data, error } = await supabaseRequest<SentLeadExtended[]>(
-      `/import_clint_jafoi?select=*&interaction_type=eq.opt-out&order=status_updated_at.desc&limit=${limit}`
+      `/import_clint_jafoi?select=*&interaction_type=eq.opt-out&order=created_at.desc&limit=${limit}`
     );
 
     if (error) throw error;
@@ -652,7 +667,7 @@ export const metricsService = {
   // Get all sent leads (for global contacts table)
   async getAllSentLeads(limit = 100, offset = 0): Promise<{ data: SentLeadExtended[]; count: number }> {
     const { data, error, count } = await supabaseRequest<SentLeadExtended[]>(
-      `/import_clint_jafoi?select=*&order=sent_at.desc&offset=${offset}&limit=${limit}`
+      `/import_clint_jafoi?select=*&order=created_at.desc&offset=${offset}&limit=${limit}`
     );
 
     if (error) throw error;
