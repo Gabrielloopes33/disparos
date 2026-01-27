@@ -17,7 +17,7 @@ import {
   MessageSquare,
   Users,
 } from "lucide-react";
-import { useCampaign, useCampaignMetrics, useCampaignContacts } from "@/hooks/useCampaigns";
+import { useCampaign, useCampaignContacts } from "@/hooks/useCampaigns";
 
 const CampaignDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -27,27 +27,26 @@ const CampaignDetails = () => {
 
   // Fetch real data from Supabase
   const { data: campaign, isLoading: loadingCampaign } = useCampaign(id);
-  const { data: metricsData, isLoading: loadingMetrics } = useCampaignMetrics(id);
   const { data: contactsData, isLoading: loadingContacts } = useCampaignContacts(id, pageSize, (page - 1) * pageSize);
 
-  const loading = loadingCampaign || loadingMetrics || loadingContacts;
+  const loading = loadingCampaign || loadingContacts;
 
-  // Transform metrics for components
+  // Use metrics from the campaign table itself (consolidated metrics)
   const metrics = useMemo(() => ({
-    totalSent: metricsData?.totalSent || 0,
-    delivered: metricsData?.delivered || 0,
-    read: metricsData?.read || 0,
-    positiveInteractions: metricsData?.positiveInteractions || 0,
-    optOuts: metricsData?.optOuts || 0,
-    linkClicks: metricsData?.linkClicks || 0,
-  }), [metricsData]);
+    totalSent: campaign?.total_sent || 0,
+    delivered: campaign?.delivered_count || 0,
+    read: campaign?.read_count || 0,
+    positiveInteractions: campaign?.positive_interaction_count || 0,
+    optOuts: campaign?.opt_out_count || 0,
+    linkClicks: campaign?.link_click_count || 0,
+  }), [campaign]);
 
   const funnelData = useMemo(() => ({
-    totalSent: metricsData?.totalSent || 0,
-    delivered: metricsData?.delivered || 0,
-    read: metricsData?.read || 0,
-    interacted: metricsData?.positiveInteractions || 0,
-  }), [metricsData]);
+    totalSent: campaign?.total_sent || 0,
+    delivered: campaign?.delivered_count || 0,
+    read: campaign?.read_count || 0,
+    interacted: campaign?.positive_interaction_count || 0,
+  }), [campaign]);
 
   // Transform contacts for the table
   const contacts: ContactLog[] = useMemo(() => {
