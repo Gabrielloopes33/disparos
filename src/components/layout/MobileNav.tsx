@@ -35,19 +35,24 @@ const navItems = [
     path: "/instances",
   },
   {
+    icon: ListTodo,
+    label: "Fila de Disparos",
+    path: "/queue",
+  },
+  {
     icon: Rocket,
     label: "Campanhas",
     path: "/campaigns",
   },
   {
     icon: Send,
-    label: "Disparos",
+    label: "Gestão de Grupos",
     path: "/dispatch",
   },
   {
-    icon: ListTodo,
-    label: "Fila n8n",
-    path: "/queue",
+    icon: Zap,
+    label: "Controle n8n",
+    path: "/n8n",
   },
   {
     icon: FileText,

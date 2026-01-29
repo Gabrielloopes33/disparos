@@ -29,31 +29,37 @@ const navItems = [
     icon: Smartphone, 
     label: "Instâncias", 
     path: "/instances",
-    badge: "22"
+    badge: null
+  },
+  {
+    icon: ListTodo,
+    label: "Fila de Disparos",
+    path: "/queue",
+    badge: null
   },
   {
     icon: Rocket,
     label: "Campanhas",
     path: "/campaigns",
-    badge: "novo"
+    badge: null
   },
-  {
-    icon: Send,
-    label: "Disparos",
+  { 
+    icon: Send, 
+    label: "Gestão de Grupos", 
     path: "/dispatch",
     badge: null
   },
   {
-    icon: ListTodo,
-    label: "Fila n8n",
-    path: "/queue",
+    icon: Zap,
+    label: "Controle n8n",
+    path: "/n8n",
     badge: null
   },
   {
     icon: FileText,
     label: "Logs",
     path: "/logs",
-    badge: "12"
+    badge: null
   },
   { 
     icon: Settings, 

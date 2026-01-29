@@ -1,18 +1,11 @@
-import { useState } from "react";
 import {
-  Play,
-  Pause,
   RefreshCw,
   Loader2,
-  CheckCircle2,
-  XCircle,
-  Clock,
   Zap,
   Activity,
   AlertTriangle,
   RotateCcw,
   StopCircle,
-  ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -78,8 +71,8 @@ export function WorkflowControl() {
         await activateWorkflow.mutateAsync(workflow.id);
         toast.success(`Workflow "${workflow.name}" ativado`);
       }
-    } catch (error: any) {
-      toast.error(error.message || "Erro ao alterar workflow");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Erro ao alterar workflow");
     }
   };
 
@@ -87,8 +80,8 @@ export function WorkflowControl() {
     try {
       await stopExecution.mutateAsync(executionId);
       toast.success("Execução parada");
-    } catch (error: any) {
-      toast.error(error.message || "Erro ao parar execução");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Erro ao parar execução");
     }
   };
 
@@ -96,21 +89,21 @@ export function WorkflowControl() {
     try {
       await retryExecution.mutateAsync(executionId);
       toast.success("Execução reiniciada");
-    } catch (error: any) {
-      toast.error(error.message || "Erro ao reiniciar execução");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Erro ao reiniciar execução");
     }
   };
 
   const getStatusBadge = (status: N8nExecution["status"]) => {
     const statusConfig = {
-      success: { icon: CheckCircle2, color: "text-green-500", bg: "bg-green-500/10", label: "Sucesso" },
-      error: { icon: XCircle, color: "text-red-500", bg: "bg-red-500/10", label: "Erro" },
+      success: { icon: Loader2, color: "text-green-500", bg: "bg-green-500/10", label: "Sucesso", animate: false },
+      error: { icon: AlertTriangle, color: "text-red-500", bg: "bg-red-500/10", label: "Erro", animate: false },
       running: { icon: Loader2, color: "text-blue-500", bg: "bg-blue-500/10", label: "Rodando", animate: true },
-      waiting: { icon: Clock, color: "text-amber-500", bg: "bg-amber-500/10", label: "Aguardando" },
-      canceled: { icon: StopCircle, color: "text-gray-500", bg: "bg-gray-500/10", label: "Cancelado" },
-      crashed: { icon: AlertTriangle, color: "text-red-500", bg: "bg-red-500/10", label: "Crash" },
-      new: { icon: Clock, color: "text-blue-500", bg: "bg-blue-500/10", label: "Novo" },
-      unknown: { icon: AlertTriangle, color: "text-gray-500", bg: "bg-gray-500/10", label: "Desconhecido" },
+      waiting: { icon: Loader2, color: "text-amber-500", bg: "bg-amber-500/10", label: "Aguardando", animate: false },
+      canceled: { icon: StopCircle, color: "text-gray-500", bg: "bg-gray-500/10", label: "Cancelado", animate: false },
+      crashed: { icon: AlertTriangle, color: "text-red-500", bg: "bg-red-500/10", label: "Crash", animate: false },
+      new: { icon: Loader2, color: "text-blue-500", bg: "bg-blue-500/10", label: "Novo", animate: false },
+      unknown: { icon: AlertTriangle, color: "text-gray-500", bg: "bg-gray-500/10", label: "Desconhecido", animate: false },
     };
 
     const config = statusConfig[status] || statusConfig.unknown;
@@ -192,7 +185,7 @@ export function WorkflowControl() {
                 {runningExecutions > 0 ? (
                   <Loader2 className="h-5 w-5 text-blue-500 animate-spin" />
                 ) : (
-                  <Clock className="h-5 w-5 text-muted-foreground" />
+                  <Loader2 className="h-5 w-5 text-muted-foreground" />
                 )}
               </div>
               <div>
@@ -203,64 +196,6 @@ export function WorkflowControl() {
           </CardContent>
         </Card>
       </div>
-
-      {/* Workflows List */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <Zap className="h-5 w-5" />
-              Workflows
-            </CardTitle>
-            <CardDescription>Gerencie seus workflows de disparo</CardDescription>
-          </div>
-          <Button variant="outline" size="sm" onClick={() => refetchWorkflows()}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Atualizar
-          </Button>
-        </CardHeader>
-        <CardContent>
-          {loadingWorkflows ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : !workflows?.length ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Zap className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>Nenhum workflow encontrado</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {workflows.map((workflow) => (
-                <div
-                  key={workflow.id}
-                  className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`h-3 w-3 rounded-full ${workflow.active ? "bg-green-500 animate-pulse" : "bg-gray-400"}`} />
-                    <div>
-                      <p className="font-medium">{workflow.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        ID: {workflow.id} • Atualizado: {formatDate(workflow.updatedAt)}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <Badge variant={workflow.active ? "default" : "secondary"}>
-                      {workflow.active ? "Ativo" : "Inativo"}
-                    </Badge>
-                    <Switch
-                      checked={workflow.active}
-                      onCheckedChange={() => handleToggleWorkflow(workflow)}
-                      disabled={activateWorkflow.isPending || deactivateWorkflow.isPending}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
       {/* Recent Executions */}
       <Card>
@@ -362,6 +297,64 @@ export function WorkflowControl() {
           )}
         </CardContent>
       </Card>
+
+      {/* Workflows List */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Zap className="h-5 w-5" />
+              Workflows
+            </CardTitle>
+            <CardDescription>Gerencie seus workflows de disparo</CardDescription>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => refetchWorkflows()}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Atualizar
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {loadingWorkflows ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : !workflows?.length ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Zap className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>Nenhum workflow encontrado</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {workflows.map((workflow) => (
+                <div
+                  key={workflow.id}
+                  className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`h-3 w-3 rounded-full ${workflow.active ? "bg-green-500 animate-pulse" : "bg-gray-400"}`} />
+                    <div>
+                      <p className="font-medium">{workflow.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        ID: {workflow.id} • Atualizado: {formatDate(workflow.updatedAt)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <Badge variant={workflow.active ? "default" : "secondary"}>
+                      {workflow.active ? "Ativo" : "Inativo"}
+                    </Badge>
+                    <Switch
+                      checked={workflow.active}
+                      onCheckedChange={() => handleToggleWorkflow(workflow)}
+                      disabled={activateWorkflow.isPending || deactivateWorkflow.isPending}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
-  );
+);
 }
