@@ -31,8 +31,10 @@ import {
   UserX,
   Clock,
   MessageSquare,
+  History,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ConversationHistory } from "./ConversationHistory";
 
 export type MessageStatus = "sent" | "delivered" | "read" | "failed";
 export type InteractionType = "none" | "reply" | "positive_reply" | "opt-out" | "click";
@@ -331,9 +333,21 @@ export function CampaignContactsTable({
                             <div className="flex items-start gap-2">
                               <MessageSquare className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
                               <div className="space-y-1 flex-1">
-                                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                  Mensagem Enviada
-                                </p>
+                                <div className="flex items-center justify-between">
+                                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                                    Mensagem Enviada
+                                  </p>
+                                  <ConversationHistory
+                                    contactPhone={contact.contactNumber}
+                                    contactName={contact.contactName}
+                                    trigger={
+                                      <Button variant="outline" size="sm" className="gap-1 h-7">
+                                        <History className="h-3 w-3" />
+                                        Ver Historico Completo
+                                      </Button>
+                                    }
+                                  />
+                                </div>
                                 <p className="text-sm whitespace-pre-wrap bg-background p-3 rounded-lg border">
                                   {contact.messageSent}
                                 </p>

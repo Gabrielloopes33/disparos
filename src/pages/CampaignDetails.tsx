@@ -17,7 +17,7 @@ import {
   MessageSquare,
   Users,
 } from "lucide-react";
-import { useCampaign, useCampaignContacts } from "@/hooks/useCampaigns";
+import { useCampaign, useCampaignContacts, useCampaignMetrics } from "@/hooks/useCampaigns";
 
 const CampaignDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -29,24 +29,27 @@ const CampaignDetails = () => {
   const { data: campaign, isLoading: loadingCampaign } = useCampaign(id);
   const { data: contactsData, isLoading: loadingContacts } = useCampaignContacts(id, pageSize, (page - 1) * pageSize);
 
-  const loading = loadingCampaign || loadingContacts;
+  // Fetch metrics calculated from import_clint_jafoi (real-time count)
+  const { data: calculatedMetrics, isLoading: loadingMetrics } = useCampaignMetrics(id);
 
-  // Use metrics from the campaign table itself (consolidated metrics)
+  const loading = loadingCampaign || loadingContacts || loadingMetrics;
+
+  // Use calculated metrics from import_clint_jafoi (more accurate than campaign table)
   const metrics = useMemo(() => ({
-    totalSent: campaign?.total_sent || 0,
-    delivered: campaign?.delivered_count || 0,
-    read: campaign?.read_count || 0,
-    positiveInteractions: campaign?.positive_interaction_count || 0,
-    optOuts: campaign?.opt_out_count || 0,
-    linkClicks: campaign?.link_click_count || 0,
-  }), [campaign]);
+    totalSent: calculatedMetrics?.totalSent || 0,
+    delivered: calculatedMetrics?.delivered || 0,
+    read: calculatedMetrics?.read || 0,
+    positiveInteractions: calculatedMetrics?.positiveInteractions || 0,
+    optOuts: calculatedMetrics?.optOuts || 0,
+    linkClicks: calculatedMetrics?.linkClicks || 0,
+  }), [calculatedMetrics]);
 
   const funnelData = useMemo(() => ({
-    totalSent: campaign?.total_sent || 0,
-    delivered: campaign?.delivered_count || 0,
-    read: campaign?.read_count || 0,
-    interacted: campaign?.positive_interaction_count || 0,
-  }), [campaign]);
+    totalSent: calculatedMetrics?.totalSent || 0,
+    delivered: calculatedMetrics?.delivered || 0,
+    read: calculatedMetrics?.read || 0,
+    interacted: calculatedMetrics?.positiveInteractions || 0,
+  }), [calculatedMetrics]);
 
   // Transform contacts for the table
   const contacts: ContactLog[] = useMemo(() => {
@@ -182,7 +185,7 @@ const CampaignDetails = () => {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground uppercase tracking-wider">Contatos</p>
-                <p className="font-medium">{metrics.totalSent.toLocaleString("pt-BR")} leads</p>
+                <p className="font-medium">{(contactsData?.count || metrics.totalSent).toLocaleString("pt-BR")} leads</p>
               </div>
             </CardContent>
           </Card>
