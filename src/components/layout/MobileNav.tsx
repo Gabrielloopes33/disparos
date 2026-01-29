@@ -41,7 +41,7 @@ const navItems = [
   },
   {
     icon: Rocket,
-    label: "Campanhas",
+    label: "Campanhas de Disparo",
     path: "/campaigns",
   },
   {
