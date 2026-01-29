@@ -136,25 +136,21 @@ export const queueService = {
     const errors: string[] = [];
     let inserted = 0;
 
-    console.log('addLeads - Input:', JSON.stringify(leads.slice(0, 2)));
+    console.log('addLeads - Input leads count:', leads.length);
 
     // Process in batches of 100
     const batchSize = 100;
     for (let i = 0; i < leads.length; i += batchSize) {
       const batch = leads.slice(i, i + batchSize).map(lead => {
-        // Ensure ddi and phone are strings, not numbers
-        const ddiStr = String(lead.ddi || '55');
-        const phoneStr = String(lead.phone || '');
-        
+        // Send only essential fields to avoid schema mismatch
         return {
-          ...lead,
-          ddi: ddiStr,
-          phone: phoneStr,
-          complete_phone: `${ddiStr}${phoneStr}`,
+          name: lead.name || 'Sem nome',
+          email: lead.email || null,
+          complete_phone: String(lead.ddi || '55') + String(lead.phone || ''),
         };
       });
 
-      console.log(`addLeads - Batch ${Math.floor(i / batchSize) + 1}:`, JSON.stringify(batch.slice(0, 1)));
+      console.log(`addLeads - Batch ${Math.floor(i / batchSize) + 1}, size:`, batch.length);
 
       const { data, error } = await supabaseRequest<QueueLead[]>(
         `/import_clint_01`,
