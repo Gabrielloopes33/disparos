@@ -136,13 +136,25 @@ export const queueService = {
     const errors: string[] = [];
     let inserted = 0;
 
+    console.log('addLeads - Input:', JSON.stringify(leads.slice(0, 2)));
+
     // Process in batches of 100
     const batchSize = 100;
     for (let i = 0; i < leads.length; i += batchSize) {
-      const batch = leads.slice(i, i + batchSize).map(lead => ({
-        ...lead,
-        complete_phone: `${lead.ddi}${lead.phone}`,
-      }));
+      const batch = leads.slice(i, i + batchSize).map(lead => {
+        // Ensure ddi and phone are strings, not numbers
+        const ddiStr = String(lead.ddi || '55');
+        const phoneStr = String(lead.phone || '');
+        
+        return {
+          ...lead,
+          ddi: ddiStr,
+          phone: phoneStr,
+          complete_phone: `${ddiStr}${phoneStr}`,
+        };
+      });
+
+      console.log(`addLeads - Batch ${Math.floor(i / batchSize) + 1}:`, JSON.stringify(batch.slice(0, 1)));
 
       const { data, error } = await supabaseRequest<QueueLead[]>(
         `/import_clint_01`,
@@ -154,6 +166,7 @@ export const queueService = {
       );
 
       if (error) {
+        console.error(`Batch ${Math.floor(i / batchSize) + 1} error:`, error);
         errors.push(`Batch ${Math.floor(i / batchSize) + 1}: ${error.message}`);
       } else {
         inserted += data?.length || batch.length;
