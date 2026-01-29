@@ -178,8 +178,8 @@ export function ImportCSV() {
       } else {
         toast.warning(`${result.inserted} importados, ${result.errors.length} erros`);
       }
-    } catch (error: any) {
-      const is503 = error?.message?.includes('503');
+    } catch (error) {
+      const is503 = error instanceof Error && error.message?.includes('503');
       toast.error(
         is503
           ? "Servidor Supabase indisponível. Verifique os serviços."
@@ -293,14 +293,14 @@ export function ImportCSV() {
               <div className="space-y-2">
                 <Label>Nome</Label>
                 <Select
-                  value={columnMapping.name}
-                  onValueChange={(v) => setColumnMapping((m) => ({ ...m, name: v }))}
+                  value={columnMapping.name || "__none__"}
+                  onValueChange={(v) => setColumnMapping((m) => ({ ...m, name: v === "__none__" ? "" : v }))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione a coluna" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Nenhum</SelectItem>
+                    <SelectItem value="__none__">Nenhum</SelectItem>
                     {parsedCSV.headers.map((h) => (
                       <SelectItem key={h} value={h}>
                         {h}
@@ -313,14 +313,14 @@ export function ImportCSV() {
               <div className="space-y-2">
                 <Label>Email</Label>
                 <Select
-                  value={columnMapping.email}
-                  onValueChange={(v) => setColumnMapping((m) => ({ ...m, email: v }))}
+                  value={columnMapping.email || "__none__"}
+                  onValueChange={(v) => setColumnMapping((m) => ({ ...m, email: v === "__none__" ? "" : v }))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione a coluna" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Nenhum</SelectItem>
+                    <SelectItem value="__none__">Nenhum</SelectItem>
                     {parsedCSV.headers.map((h) => (
                       <SelectItem key={h} value={h}>
                         {h}
@@ -333,14 +333,14 @@ export function ImportCSV() {
               <div className="space-y-2">
                 <Label>DDI (código do país)</Label>
                 <Select
-                  value={columnMapping.ddi}
-                  onValueChange={(v) => setColumnMapping((m) => ({ ...m, ddi: v }))}
+                  value={columnMapping.ddi || "__none__"}
+                  onValueChange={(v) => setColumnMapping((m) => ({ ...m, ddi: v === "__none__" ? "" : v }))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Padrão: 55 (Brasil)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Usar 55 (Brasil)</SelectItem>
+                    <SelectItem value="__none__">Usar 55 (Brasil)</SelectItem>
                     {parsedCSV.headers.map((h) => (
                       <SelectItem key={h} value={h}>
                         {h}
@@ -374,14 +374,14 @@ export function ImportCSV() {
               <div className="space-y-2">
                 <Label>Empresa</Label>
                 <Select
-                  value={columnMapping.organization_name}
-                  onValueChange={(v) => setColumnMapping((m) => ({ ...m, organization_name: v }))}
+                  value={columnMapping.organization_name || "__none__"}
+                  onValueChange={(v) => setColumnMapping((m) => ({ ...m, organization_name: v === "__none__" ? "" : v }))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione a coluna" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Nenhum</SelectItem>
+                    <SelectItem value="__none__">Nenhum</SelectItem>
                     {parsedCSV.headers.map((h) => (
                       <SelectItem key={h} value={h}>
                         {h}
